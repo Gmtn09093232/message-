@@ -4,11 +4,8 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>SecureChat</title>
-
-    <!-- Supabase client (global) -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2">
     </script>
-
     <style>
         /* ----- RESET & VARIABLES ----- */
         * {
@@ -44,249 +41,81 @@
             justify-content: center;
         }
 
-        /* ----- AUTH SCREEN ----- */
-        #auth-screen {
+        /* ----- LOADING SCREEN ----- */
+        #loading-screen {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 20px;
             background: var(--bg-secondary);
-            padding: 40px 32px;
+            padding: 48px 40px;
             border-radius: var(--radius);
+            border: 1px solid var(--border);
             box-shadow: var(--shadow);
             max-width: 420px;
             width: 100%;
-            border: 1px solid var(--border);
-            position: relative;
-        }
-        #auth-screen .logo {
             text-align: center;
-            margin-bottom: 28px;
         }
-        #auth-screen .logo h2 {
+        #loading-screen .logo {
+            font-size: 32px;
             font-weight: 700;
-            font-size: 26px;
-            letter-spacing: -0.5px;
         }
-        #auth-screen .logo h2 span {
+        #loading-screen .logo span {
             color: var(--accent);
         }
-        #auth-screen .logo p {
-            color: var(--text-muted);
-            font-size: 14px;
-            margin-top: 4px;
-        }
-
-        #auth-screen input {
-            width: 100%;
-            padding: 12px 14px;
-            margin-bottom: 14px;
-            background: var(--bg);
-            border: 1px solid var(--border);
-            border-radius: var(--radius-sm);
-            color: var(--text);
-            font-size: 15px;
-            outline: none;
-            transition: border var(--transition);
-        }
-        #auth-screen input:focus {
-            border-color: var(--accent);
-        }
-        #auth-screen input::placeholder {
-            color: var(--text-muted);
-            opacity: 0.7;
-        }
-
-        .form-group {
-            margin-bottom: 14px;
-        }
-        .form-group label {
-            display: block;
-            font-size: 13px;
-            font-weight: 500;
-            color: var(--text-muted);
-            margin-bottom: 4px;
-        }
-        .form-group .hint {
-            font-size: 12px;
-            color: var(--text-muted);
-            opacity: 0.7;
-            margin-top: 2px;
-        }
-
-        .password-wrapper {
-            position: relative;
-        }
-        .password-wrapper input {
-            padding-right: 44px;
-        }
-        .password-toggle {
-            position: absolute;
-            right: 12px;
-            top: 50%;
-            transform: translateY(-50%);
-            background: none;
-            border: none;
-            color: var(--text-muted);
-            cursor: pointer;
-            font-size: 18px;
-            padding: 4px;
-            border-radius: 4px;
-            transition: color var(--transition);
-        }
-        .password-toggle:hover {
-            color: var(--text);
-        }
-
-        .password-strength {
-            display: flex;
-            gap: 4px;
-            margin-top: 6px;
-        }
-        .password-strength .bar {
-            height: 3px;
-            flex: 1;
-            background: var(--border);
-            border-radius: 2px;
-            transition: background var(--transition);
-        }
-        .password-strength .bar.active.weak {
-            background: var(--danger);
-        }
-        .password-strength .bar.active.medium {
-            background: #d29922;
-        }
-        .password-strength .bar.active.strong {
-            background: var(--success);
-        }
-        .password-strength-text {
-            font-size: 12px;
-            color: var(--text-muted);
-            margin-top: 4px;
-        }
-
-        .username-check {
-            font-size: 13px;
-            margin-top: -8px;
-            margin-bottom: 10px;
-        }
-        .username-check.available {
-            color: var(--success);
-        }
-        .username-check.unavailable {
-            color: var(--danger);
-        }
-        .username-check .spinner-small {
-            display: inline-block;
-            width: 14px;
-            height: 14px;
-            border: 2px solid var(--border);
+        #loading-screen .spinner-large {
+            width: 40px;
+            height: 40px;
+            border: 4px solid var(--border);
             border-top-color: var(--accent);
             border-radius: 50%;
-            animation: spin 0.7s linear infinite;
-            vertical-align: middle;
-            margin-right: 6px;
+            animation: spin 0.9s linear infinite;
         }
-
-        #auth-screen button {
-            width: 100%;
-            padding: 12px;
-            background: var(--accent);
-            border: none;
-            border-radius: var(--radius-sm);
-            color: #0d1117;
-            font-weight: 600;
-            font-size: 16px;
-            cursor: pointer;
-            transition: background var(--transition), opacity var(--transition);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
+        #loading-screen .status {
+            color: var(--text-muted);
+            font-size: 15px;
             margin-top: 4px;
         }
-        #auth-screen button:hover:not(:disabled) {
-            background: var(--accent-hover);
-        }
-        #auth-screen button:disabled {
-            opacity: 0.6;
-            cursor: not-allowed;
-        }
-
-        #auth-error {
+        #loading-screen .error-box {
             background: rgba(248, 81, 73, 0.12);
             color: var(--danger);
-            padding: 10px 14px;
+            padding: 12px 16px;
             border-radius: var(--radius-sm);
-            margin-bottom: 16px;
-            display: none;
-            font-size: 14px;
             border: 1px solid rgba(248, 81, 73, 0.2);
-        }
-        #auth-error.show {
-            display: block;
-        }
-        #auth-success {
-            background: rgba(63, 185, 80, 0.12);
-            color: var(--success);
-            padding: 10px 14px;
-            border-radius: var(--radius-sm);
-            margin-bottom: 16px;
+            font-size: 14px;
             display: none;
-            font-size: 14px;
-            border: 1px solid rgba(63, 185, 80, 0.2);
+            width: 100%;
         }
-        #auth-success.show {
+        #loading-screen .error-box.show {
             display: block;
         }
-
-        .auth-switch {
-            text-align: center;
-            margin-top: 18px;
-            font-size: 14px;
-            color: var(--text-muted);
-        }
-        .auth-switch a {
-            color: var(--accent);
+        #loading-screen .retry-btn {
+            background: var(--accent);
+            border: none;
+            color: #0d1117;
+            font-weight: 600;
+            padding: 10px 28px;
+            border-radius: var(--radius-sm);
             cursor: pointer;
-            text-decoration: none;
-            font-weight: 500;
-            transition: color var(--transition);
+            font-size: 15px;
+            transition: background var(--transition);
+            display: none;
         }
-        .auth-switch a:hover {
-            color: var(--accent-hover);
-            text-decoration: underline;
+        #loading-screen .retry-btn:hover {
+            background: var(--accent-hover);
         }
-
-        .divider {
-            display: flex;
-            align-items: center;
-            gap: 16px;
-            margin: 18px 0 16px;
-            color: var(--text-muted);
-            font-size: 13px;
-        }
-        .divider::before,
-        .divider::after {
-            content: '';
-            flex: 1;
-            height: 1px;
-            background: var(--border);
-        }
-
-        /* ----- SPINNER ----- */
-        .spinner {
-            width: 20px;
-            height: 20px;
-            border: 3px solid rgba(13, 17, 23, 0.2);
-            border-radius: 50%;
-            border-top-color: #0d1117;
-            animation: spin 0.7s linear infinite;
+        #loading-screen .retry-btn.show {
             display: inline-block;
         }
+
         @keyframes spin {
             to {
                 transform: rotate(360deg);
             }
         }
 
-        /* ----- MAIN APP (unchanged from original) ----- */
+        /* ----- MAIN APP (unchanged) ----- */
         #app {
             display: none;
             width: 100vw;
@@ -743,8 +572,8 @@
                 padding: 24px 20px;
                 margin: 12px;
             }
-            #auth-screen {
-                padding: 28px 20px;
+            #loading-screen {
+                padding: 32px 24px;
                 margin: 16px;
             }
         }
@@ -768,73 +597,13 @@
 
 <body>
 
-    <!-- ========== AUTH SCREEN ========== -->
-    <div id="auth-screen">
-        <div class="logo">
-            <h2>🔒 <span>SecureChat</span></h2>
-            <p>End-to-end encrypted messaging</p>
-        </div>
-
-        <div id="auth-error"></div>
-        <div id="auth-success"></div>
-
-        <!-- Login Form -->
-        <form id="login-form">
-            <div class="form-group">
-                <label for="login-email">Email</label>
-                <input id="login-email" type="email" placeholder="you@example.com" required autocomplete="email" />
-            </div>
-            <div class="form-group">
-                <label for="login-password">Password</label>
-                <div class="password-wrapper">
-                    <input id="login-password" type="password" placeholder="Enter your password" required autocomplete="current-password" />
-                    <button type="button" class="password-toggle" aria-label="Toggle password visibility">👁</button>
-                </div>
-            </div>
-            <button id="login-btn" type="submit">Sign In</button>
-        </form>
-
-        <!-- Signup Form -->
-        <form id="signup-form" style="display:none;">
-            <div class="form-group">
-                <label for="signup-username">Username</label>
-                <input id="signup-username" placeholder="Choose a unique username" required autocomplete="off" />
-                <div id="username-check" class="username-check"></div>
-                <div class="hint">Only letters, numbers, and underscores. 3–20 characters.</div>
-            </div>
-            <div class="form-group">
-                <label for="signup-fullname">Full Name</label>
-                <input id="signup-fullname" placeholder="Your full name" autocomplete="name" />
-            </div>
-            <div class="form-group">
-                <label for="signup-email">Email</label>
-                <input id="signup-email" type="email" placeholder="you@example.com" required autocomplete="email" />
-            </div>
-            <div class="form-group">
-                <label for="signup-phone">Phone (optional)</label>
-                <input id="signup-phone" type="tel" placeholder="+1 234 567 890" autocomplete="tel" />
-            </div>
-            <div class="form-group">
-                <label for="signup-password">Password</label>
-                <div class="password-wrapper">
-                    <input id="signup-password" type="password" placeholder="Min 8 characters" required autocomplete="new-password" />
-                    <button type="button" class="password-toggle" aria-label="Toggle password visibility">👁</button>
-                </div>
-                <div class="password-strength">
-                    <div class="bar" data-index="0"></div>
-                    <div class="bar" data-index="1"></div>
-                    <div class="bar" data-index="2"></div>
-                    <div class="bar" data-index="3"></div>
-                </div>
-                <div class="password-strength-text" id="password-strength-text">Enter a strong password</div>
-            </div>
-            <button id="signup-btn" type="submit">Create Account</button>
-        </form>
-
-        <div class="auth-switch">
-            <span id="auth-switch-text">Don't have an account?</span>
-            <a href="#" id="auth-switch-link">Sign up</a>
-        </div>
+    <!-- ========== LOADING SCREEN ========== -->
+    <div id="loading-screen">
+        <div class="logo">🔒 <span>SecureChat</span></div>
+        <div class="spinner-large"></div>
+        <div class="status" id="loading-status">Connecting securely…</div>
+        <div class="error-box" id="loading-error">Something went wrong. Please try again.</div>
+        <button class="retry-btn" id="retry-btn">Retry</button>
     </div>
 
     <!-- ========== MAIN APP ========== -->
@@ -912,8 +681,7 @@
     <!-- ========== JAVASCRIPT ========== -->
     <script>
         // ============================================================
-        //  SECURECHAT – Full E2E Encrypted Messaging (Supabase + Web Crypto)
-        //  All code is self‑contained; no extra files needed.
+        //  SECURECHAT – Anonymous auto-login (no login screen)
         // ============================================================
 
         // ---------- CONFIG ----------
@@ -931,278 +699,161 @@
         let users = [];
         let messages = [];
         let realtimeChannel = null;
-        let isSignup = false;
         const conversationKeys = new Map();
-        let usernameCheckTimer = null;
-        let isUsernameAvailable = false;
 
         // ---------- DOM REFS ----------
-        const authScreen = document.getElementById('auth-screen');
+        const loadingScreen = document.getElementById('loading-screen');
+        const loadingStatus = document.getElementById('loading-status');
+        const loadingError = document.getElementById('loading-error');
+        const retryBtn = document.getElementById('retry-btn');
         const appEl = document.getElementById('app');
-        const authError = document.getElementById('auth-error');
-        const authSuccess = document.getElementById('auth-success');
-        const loginForm = document.getElementById('login-form');
-        const signupForm = document.getElementById('signup-form');
-        const authSwitchLink = document.getElementById('auth-switch-link');
-        const authSwitchText = document.getElementById('auth-switch-text');
-        const loginBtn = document.getElementById('login-btn');
-        const signupBtn = document.getElementById('signup-btn');
-        const loginEmail = document.getElementById('login-email');
-        const loginPassword = document.getElementById('login-password');
 
-        // ---------- AUTH SWITCH ----------
-        authSwitchLink.addEventListener('click', (e) => {
-            e.preventDefault();
-            isSignup = !isSignup;
-            loginForm.style.display = isSignup ? 'none' : 'block';
-            signupForm.style.display = isSignup ? 'block' : 'none';
-            authSwitchText.textContent = isSignup ? 'Already have an account?' : "Don't have an account?";
-            authSwitchLink.textContent = isSignup ? 'Sign in' : 'Sign up';
-            authError.classList.remove('show');
-            authSuccess.classList.remove('show');
-            // Reset signup form
-            if (isSignup) {
-                document.getElementById('signup-username').value = '';
-                document.getElementById('signup-fullname').value = '';
-                document.getElementById('signup-email').value = '';
-                document.getElementById('signup-phone').value = '';
-                document.getElementById('signup-password').value = '';
-                document.getElementById('username-check').textContent = '';
-                document.getElementById('username-check').className = 'username-check';
-                document.querySelectorAll('.password-strength .bar').forEach(b => b.className = 'bar');
-                document.getElementById('password-strength-text').textContent = 'Enter a strong password';
-            }
-        });
+        // ---------- HELPERS ----------
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
 
-        // ---------- PASSWORD TOGGLE ----------
-        document.querySelectorAll('.password-toggle').forEach(btn => {
-            btn.addEventListener('click', () => {
-                const input = btn.closest('.password-wrapper').querySelector('input');
-                const type = input.type === 'password' ? 'text' : 'password';
-                input.type = type;
-                btn.textContent = type === 'password' ? '👁' : '👁‍🗨';
-            });
-        });
+        function formatTime(iso) {
+            const d = new Date(iso);
+            return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        }
 
-        // ---------- PASSWORD STRENGTH ----------
-        document.getElementById('signup-password').addEventListener('input', (e) => {
-            const pwd = e.target.value;
-            const bars = document.querySelectorAll('.password-strength .bar');
-            const textEl = document.getElementById('password-strength-text');
-
-            let strength = 0;
-            if (pwd.length >= 8) strength++;
-            if (/[a-z]/.test(pwd) && /[A-Z]/.test(pwd)) strength++;
-            if (/\d/.test(pwd)) strength++;
-            if (/[^a-zA-Z0-9]/.test(pwd)) strength++;
-
-            bars.forEach((bar, i) => {
-                bar.className = 'bar';
-                if (i < strength) {
-                    bar.classList.add('active');
-                    if (strength <= 2) bar.classList.add('weak');
-                    else if (strength === 3) bar.classList.add('medium');
-                    else bar.classList.add('strong');
-                }
-            });
-
-            if (pwd.length === 0) {
-                textEl.textContent = 'Enter a strong password';
-            } else if (strength <= 1) {
-                textEl.textContent = 'Weak — add uppercase, numbers, or special characters';
-            } else if (strength === 2) {
-                textEl.textContent = 'Fair — add more variety';
-            } else if (strength === 3) {
-                textEl.textContent = 'Good — almost there!';
+        function setLoadingStatus(msg, isError = false) {
+            loadingStatus.textContent = msg;
+            if (isError) {
+                loadingStatus.style.color = 'var(--danger)';
             } else {
-                textEl.textContent = 'Strong — great password!';
+                loadingStatus.style.color = 'var(--text-muted)';
             }
-        });
+        }
 
-        // ---------- USERNAME AVAILABILITY CHECK ----------
-        document.getElementById('signup-username').addEventListener('input', async (e) => {
-            const username = e.target.value.trim();
-            const checkEl = document.getElementById('username-check');
+        function showError(msg) {
+            loadingError.textContent = msg;
+            loadingError.classList.add('show');
+            retryBtn.classList.add('show');
+            setLoadingStatus('Authentication failed', true);
+        }
 
-            if (!username) {
-                checkEl.textContent = '';
-                checkEl.className = 'username-check';
-                isUsernameAvailable = false;
-                return;
+        function hideError() {
+            loadingError.classList.remove('show');
+            retryBtn.classList.remove('show');
+        }
+
+        // ---------- E2EE (Web Crypto) ----------
+        async function generateKeyPair() {
+            return await window.crypto.subtle.generateKey(
+                { name: 'ECDH', namedCurve: 'P-256' },
+                true,
+                ['deriveKey', 'deriveBits']
+            );
+        }
+
+        async function exportPublicKey(key) {
+            const exported = await window.crypto.subtle.exportKey('raw', key);
+            return btoa(String.fromCharCode(...new Uint8Array(exported)));
+        }
+
+        async function exportPrivateKey(key) {
+            const exported = await window.crypto.subtle.exportKey('pkcs8', key);
+            return btoa(String.fromCharCode(...new Uint8Array(exported)));
+        }
+
+        async function importPublicKey(b64) {
+            const binary = Uint8Array.from(atob(b64), c => c.charCodeAt(0));
+            return await window.crypto.subtle.importKey(
+                'raw',
+                binary,
+                { name: 'ECDH', namedCurve: 'P-256' },
+                true,
+                []
+            );
+        }
+
+        async function importPrivateKey(b64) {
+            const binary = Uint8Array.from(atob(b64), c => c.charCodeAt(0));
+            return await window.crypto.subtle.importKey(
+                'pkcs8',
+                binary,
+                { name: 'ECDH', namedCurve: 'P-256' },
+                true,
+                ['deriveKey', 'deriveBits']
+            );
+        }
+
+        async function getConversationKey(otherUser) {
+            const cacheKey = [currentUser.id, otherUser.id].sort().join(':');
+            if (conversationKeys.has(cacheKey)) return conversationKeys.get(cacheKey);
+
+            const privB64 = localStorage.getItem(`privateKey_${currentUser.email}`);
+            if (!privB64) throw new Error('Private key not found. Please re-login.');
+
+            const myPrivateKey = await importPrivateKey(privB64);
+            const theirPublicKey = await importPublicKey(otherUser.public_key);
+
+            const sharedKey = await window.crypto.subtle.deriveKey(
+                { name: 'ECDH', public: theirPublicKey },
+                myPrivateKey,
+                { name: 'AES-GCM', length: 256 },
+                false,
+                ['encrypt', 'decrypt']
+            );
+
+            conversationKeys.set(cacheKey, sharedKey);
+            return sharedKey;
+        }
+
+        async function encryptMessage(plaintext, receiver) {
+            const key = await getConversationKey(receiver);
+            const iv = window.crypto.getRandomValues(new Uint8Array(12));
+            const encoded = new TextEncoder().encode(plaintext);
+            const ciphertext = await window.crypto.subtle.encrypt(
+                { name: 'AES-GCM', iv },
+                key,
+                encoded
+            );
+            return {
+                ciphertext: btoa(String.fromCharCode(...new Uint8Array(ciphertext))),
+                iv: btoa(String.fromCharCode(...iv))
+            };
+        }
+
+        async function decryptMessage(msg) {
+            const otherId = msg.sender_id === currentUser.id ? msg.receiver_id : msg.sender_id;
+            let otherUser = users.find(u => u.id === otherId);
+            if (!otherUser) {
+                const { data } = await supabase.from('profiles').select('*').eq('id', otherId).single();
+                otherUser = data;
             }
+            if (!otherUser?.public_key) throw new Error('No public key');
 
-            if (!/^[a-zA-Z0-9_]{3,20}$/.test(username)) {
-                checkEl.textContent = '⚠️ 3–20 characters, letters, numbers, underscores only.';
-                checkEl.className = 'username-check unavailable';
-                isUsernameAvailable = false;
-                return;
-            }
+            const key = await getConversationKey(otherUser);
+            const iv = Uint8Array.from(atob(msg.iv), c => c.charCodeAt(0));
+            const ciphertext = Uint8Array.from(atob(msg.ciphertext), c => c.charCodeAt(0));
 
-            checkEl.innerHTML = '<span class="spinner-small"></span> Checking...';
-            checkEl.className = 'username-check';
-
-            clearTimeout(usernameCheckTimer);
-            usernameCheckTimer = setTimeout(async () => {
-                try {
-                    const { data, error } = await supabase
-                        .from('profiles')
-                        .select('username')
-                        .eq('username', username)
-                        .maybeSingle();
-
-                    if (error) throw error;
-
-                    if (data) {
-                        checkEl.textContent = '❌ Username already taken.';
-                        checkEl.className = 'username-check unavailable';
-                        isUsernameAvailable = false;
-                    } else {
-                        checkEl.textContent = '✅ Username available!';
-                        checkEl.className = 'username-check available';
-                        isUsernameAvailable = true;
-                    }
-                } catch (err) {
-                    checkEl.textContent = '⚠️ Could not check availability.';
-                    checkEl.className = 'username-check unavailable';
-                    isUsernameAvailable = false;
-                }
-            }, 400);
-        });
-
-        // ---------- LOGIN ----------
-        loginForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const email = loginEmail.value.trim();
-            const password = loginPassword.value;
-
-            loginBtn.disabled = true;
-            loginBtn.innerHTML = '<div class="spinner"></div>';
-
-            const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-
-            if (error) {
-                showAuthError(error.message);
-                loginBtn.disabled = false;
-                loginBtn.textContent = 'Sign In';
-                return;
-            }
-
-            await initApp(data.user);
-        });
-
-        // ---------- SIGNUP ----------
-        signupForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-
-            const username = document.getElementById('signup-username').value.trim();
-            const fullName = document.getElementById('signup-fullname').value.trim();
-            const email = document.getElementById('signup-email').value.trim();
-            const phone = document.getElementById('signup-phone').value.trim();
-            const password = document.getElementById('signup-password').value;
-
-            // Validate
-            if (!/^[a-zA-Z0-9_]{3,20}$/.test(username)) {
-                showAuthError('Username must be 3–20 characters (letters, numbers, underscores).');
-                return;
-            }
-            if (password.length < 8) {
-                showAuthError('Password must be at least 8 characters.');
-                return;
-            }
-            if (!isUsernameAvailable) {
-                showAuthError('Please choose an available username.');
-                return;
-            }
-
-            signupBtn.disabled = true;
-            signupBtn.innerHTML = '<div class="spinner"></div>';
-            authError.classList.remove('show');
-            authSuccess.classList.remove('show');
-
-            try {
-                // Generate E2E key pair
-                const keyPair = await generateKeyPair();
-                const publicKeyB64 = await exportPublicKey(keyPair.publicKey);
-                localStorage.setItem(`privateKey_${email}`, await exportPrivateKey(keyPair.privateKey));
-
-                const { data, error } = await supabase.auth.signUp({
-                    email,
-                    password,
-                    options: {
-                        data: { username, full_name: fullName, phone: phone || null }
-                    }
-                });
-
-                if (error) {
-                    showAuthError(error.message);
-                    signupBtn.disabled = false;
-                    signupBtn.textContent = 'Create Account';
-                    return;
-                }
-
-                if (data.user) {
-                    // Save profile with public key
-                    const { error: profileError } = await supabase
-                        .from('profiles')
-                        .upsert({
-                            id: data.user.id,
-                            username,
-                            full_name: fullName,
-                            phone: phone || null,
-                            public_key: publicKeyB64
-                        }, { onConflict: 'id' });
-
-                    if (profileError) {
-                        console.warn('Profile upsert error:', profileError);
-                    }
-
-                    if (data.session) {
-                        // Auto-login
-                        await initApp(data.user);
-                    } else {
-                        // Email confirmation required
-                        authSuccess.textContent = '✅ Account created! Check your email to confirm, then sign in.';
-                        authSuccess.classList.add('show');
-                        signupBtn.disabled = false;
-                        signupBtn.textContent = 'Create Account';
-                        // Switch to login view
-                        isSignup = false;
-                        loginForm.style.display = 'block';
-                        signupForm.style.display = 'none';
-                        authSwitchText.textContent = "Don't have an account?";
-                        authSwitchLink.textContent = 'Sign up';
-                        // Pre-fill email
-                        loginEmail.value = email;
-                    }
-                }
-            } catch (err) {
-                showAuthError('Signup failed: ' + err.message);
-                signupBtn.disabled = false;
-                signupBtn.textContent = 'Create Account';
-            }
-        });
-
-        function showAuthError(msg) {
-            authError.textContent = msg;
-            authError.classList.add('show');
-            authSuccess.classList.remove('show');
+            const decrypted = await window.crypto.subtle.decrypt(
+                { name: 'AES-GCM', iv },
+                key,
+                ciphertext
+            );
+            return new TextDecoder().decode(decrypted);
         }
 
         // ---------- APP INIT ----------
         async function initApp(user) {
             currentUser = user;
 
+            // Get or create profile
             let { data: profile, error: profileError } = await supabase
                 .from('profiles')
                 .select('*')
                 .eq('id', user.id)
                 .single();
 
-            // If no profile, create one
             if (!profile) {
-                const username = user.user_metadata?.username || user.email.split('@')[0];
-                const fullName = user.user_metadata?.full_name || '';
-                const phone = user.user_metadata?.phone || null;
+                const username = user.user_metadata?.username || `user_${user.id.slice(0, 8)}`;
+                const fullName = user.user_metadata?.full_name || 'Anonymous';
 
                 const { data: newProfile, error: insertError } = await supabase
                     .from('profiles')
@@ -1210,14 +861,14 @@
                         id: user.id,
                         username,
                         full_name: fullName,
-                        phone: phone || null
+                        phone: null
                     })
                     .select()
                     .single();
 
                 if (insertError) {
                     console.error('Profile creation failed:', insertError);
-                    showAuthError('Could not create profile. Please try again.');
+                    showError('Could not create profile. Please try again.');
                     return;
                 }
                 profile = newProfile;
@@ -1238,11 +889,18 @@
 
             currentProfile = profile;
 
-            authScreen.style.display = 'none';
+            // Hide loading, show app
+            loadingScreen.style.display = 'none';
             appEl.classList.add('active');
+
             updateMyChip();
             await loadUsers();
             setupRealtime();
+
+            // Auto-select first user if available
+            if (users.length > 0 && !selectedUser) {
+                selectUser(users[0]);
+            }
         }
 
         function updateMyChip() {
@@ -1408,111 +1066,13 @@
                 messages.push(data);
                 await renderMessages();
                 input.value = '';
+                input.style.height = 'auto';
             } catch (err) {
                 console.error(err);
                 alert('Failed to send message: ' + err.message);
             } finally {
                 btn.disabled = false;
             }
-        }
-
-        // ---------- E2EE (Web Crypto) ----------
-        async function generateKeyPair() {
-            return await window.crypto.subtle.generateKey(
-                { name: 'ECDH', namedCurve: 'P-256' },
-                true,
-                ['deriveKey', 'deriveBits']
-            );
-        }
-
-        async function exportPublicKey(key) {
-            const exported = await window.crypto.subtle.exportKey('raw', key);
-            return btoa(String.fromCharCode(...new Uint8Array(exported)));
-        }
-
-        async function exportPrivateKey(key) {
-            const exported = await window.crypto.subtle.exportKey('pkcs8', key);
-            return btoa(String.fromCharCode(...new Uint8Array(exported)));
-        }
-
-        async function importPublicKey(b64) {
-            const binary = Uint8Array.from(atob(b64), c => c.charCodeAt(0));
-            return await window.crypto.subtle.importKey(
-                'raw',
-                binary,
-                { name: 'ECDH', namedCurve: 'P-256' },
-                true,
-                []
-            );
-        }
-
-        async function importPrivateKey(b64) {
-            const binary = Uint8Array.from(atob(b64), c => c.charCodeAt(0));
-            return await window.crypto.subtle.importKey(
-                'pkcs8',
-                binary,
-                { name: 'ECDH', namedCurve: 'P-256' },
-                true,
-                ['deriveKey', 'deriveBits']
-            );
-        }
-
-        async function getConversationKey(otherUser) {
-            const cacheKey = [currentUser.id, otherUser.id].sort().join(':');
-            if (conversationKeys.has(cacheKey)) return conversationKeys.get(cacheKey);
-
-            const privB64 = localStorage.getItem(`privateKey_${currentUser.email}`);
-            if (!privB64) throw new Error('Private key not found. Please re-login or re-register.');
-
-            const myPrivateKey = await importPrivateKey(privB64);
-            const theirPublicKey = await importPublicKey(otherUser.public_key);
-
-            const sharedKey = await window.crypto.subtle.deriveKey(
-                { name: 'ECDH', public: theirPublicKey },
-                myPrivateKey,
-                { name: 'AES-GCM', length: 256 },
-                false,
-                ['encrypt', 'decrypt']
-            );
-
-            conversationKeys.set(cacheKey, sharedKey);
-            return sharedKey;
-        }
-
-        async function encryptMessage(plaintext, receiver) {
-            const key = await getConversationKey(receiver);
-            const iv = window.crypto.getRandomValues(new Uint8Array(12));
-            const encoded = new TextEncoder().encode(plaintext);
-            const ciphertext = await window.crypto.subtle.encrypt(
-                { name: 'AES-GCM', iv },
-                key,
-                encoded
-            );
-            return {
-                ciphertext: btoa(String.fromCharCode(...new Uint8Array(ciphertext))),
-                iv: btoa(String.fromCharCode(...iv))
-            };
-        }
-
-        async function decryptMessage(msg) {
-            const otherId = msg.sender_id === currentUser.id ? msg.receiver_id : msg.sender_id;
-            let otherUser = users.find(u => u.id === otherId);
-            if (!otherUser) {
-                const { data } = await supabase.from('profiles').select('*').eq('id', otherId).single();
-                otherUser = data;
-            }
-            if (!otherUser?.public_key) throw new Error('No public key');
-
-            const key = await getConversationKey(otherUser);
-            const iv = Uint8Array.from(atob(msg.iv), c => c.charCodeAt(0));
-            const ciphertext = Uint8Array.from(atob(msg.ciphertext), c => c.charCodeAt(0));
-
-            const decrypted = await window.crypto.subtle.decrypt(
-                { name: 'AES-GCM', iv },
-                key,
-                ciphertext
-            );
-            return new TextDecoder().decode(decrypted);
         }
 
         // ---------- REALTIME ----------
@@ -1608,7 +1168,6 @@
             const fullName = document.getElementById('profile-fullname').value.trim();
             const phone = document.getElementById('profile-phone').value.trim();
 
-            // Check if username is taken (by someone else)
             if (username !== currentProfile.username) {
                 const { data } = await supabase
                     .from('profiles')
@@ -1642,39 +1201,75 @@
             await loadUsers();
         });
 
+        // ---------- LOGOUT ----------
         document.getElementById('logout-btn').addEventListener('click', async () => {
             await supabase.auth.signOut();
+            // Clear local state and reload
+            localStorage.clear();
             location.reload();
-        });
-
-        // ---------- HELPERS ----------
-        function escapeHtml(text) {
-            const div = document.createElement('div');
-            div.textContent = text;
-            return div.innerHTML;
-        }
-
-        function formatTime(iso) {
-            const d = new Date(iso);
-            return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-        }
-
-        // ---------- SESSION CHECK ----------
-        supabase.auth.getSession().then(({ data: { session } }) => {
-            if (session?.user) initApp(session.user);
-        });
-
-        supabase.auth.onAuthStateChange((event, session) => {
-            if (event === 'SIGNED_OUT') location.reload();
-            if (event === 'SIGNED_IN' && session?.user) {
-                initApp(session.user);
-            }
         });
 
         // ---------- AUTO-RESIZE TEXTAREA ----------
         document.getElementById('message-input').addEventListener('input', function() {
             this.style.height = 'auto';
             this.style.height = Math.min(this.scrollHeight, 120) + 'px';
+        });
+
+        // ---------- ANONYMOUS AUTO-LOGIN ----------
+        async function performAnonymousLogin() {
+            hideError();
+            setLoadingStatus('Connecting securely…');
+
+            try {
+                // First check for existing session
+                const { data: { session } } = await supabase.auth.getSession();
+                if (session?.user) {
+                    setLoadingStatus('Welcome back!');
+                    await initApp(session.user);
+                    return;
+                }
+
+                // No session — sign in anonymously
+                setLoadingStatus('Creating secure session…');
+                const { data, error } = await supabase.auth.signInAnonymously();
+
+                if (error) {
+                    console.error('Anonymous sign-in failed:', error);
+                    showError('Anonymous sign-in failed: ' + error.message);
+                    return;
+                }
+
+                if (data?.user) {
+                    setLoadingStatus('Session established!');
+                    await initApp(data.user);
+                } else {
+                    showError('Could not create anonymous session. Please try again.');
+                }
+            } catch (err) {
+                console.error('Auth error:', err);
+                showError('Connection error: ' + (err.message || 'Unknown error'));
+            }
+        }
+
+        // ---------- RETRY ----------
+        retryBtn.addEventListener('click', () => {
+            performAnonymousLogin();
+        });
+
+        // ---------- START ----------
+        // Check if anonymous auth is supported and start
+        performAnonymousLogin();
+
+        // Auth state change listener — if user signs out, reload
+        supabase.auth.onAuthStateChange((event, session) => {
+            if (event === 'SIGNED_OUT') {
+                // If signed out, reload to re-authenticate anonymously
+                location.reload();
+            }
+            if (event === 'SIGNED_IN' && session?.user && !currentUser) {
+                // If signed in and app not initialized, init
+                initApp(session.user);
+            }
         });
     </script>
 </body>
