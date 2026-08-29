@@ -5,13 +5,11 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 // Serve static files from the current directory (where server.js is)
-// This will serve index.html, CSS, JS, images, etc.
-app.use(express.static(.));
+app.use(express.static(__dirname));   // or path.join(__dirname, 'public') if you put files in a subfolder
 
-// For any route that isn't a static file, return index.html
-// This supports client‑side routing if you later add it.
+// For any route that isn't a static file, return index.html (SPA support)
 app.get('*', (req, res) => {
-  res.sendFile(path.join('index.html'));
+  res.sendFile(path.join(__dirname, 'index.html'));
 });
 
 app.listen(PORT, () => {
