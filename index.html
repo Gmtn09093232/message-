@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SecureChat – Encrypted Messaging</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+  <!-- Supabase JS -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+
+  <!-- ==================== AUTH SCREEN ==================== -->
+  <div id="auth-screen" class="auth-container">
+    <div class="auth-card">
+      <div class="auth-logo">
+        <div class="icon">🔒</div>
+        <h1>SecureChat</h1>
+        <p>End-to-end encrypted messaging</p>
+      </div>
+
+      <div id="auth-error" class="error-msg"></div>
+
+      <!-- Login Form -->
+      <form id="login-form">
+        <div class="form-group">
+          <label for="login-email">Email</label>
+          <input type="email" id="login-email" placeholder="you@example.com" required />
+        </div>
+        <div class="form-group">
+          <label for="login-password">Password</label>
+          <input type="password" id="login-password" placeholder="••••••••" required minlength="6" />
+        </div>
+        <button type="submit" class="btn btn-primary" id="login-btn">Sign In</button>
+      </form>
+
+      <!-- Signup Form (hidden by default) -->
+      <form id="signup-form" style="display:none">
+        <div class="form-group">
+          <label for="signup-username">Username</label>
+          <input type="text" id="signup-username" placeholder="johndoe" required minlength="3" />
+        </div>
+        <div class="form-group">
+          <label for="signup-fullname">Full Name</label>
+          <input type="text" id="signup-fullname" placeholder="John Doe" />
+        </div>
+        <div class="form-group">
+          <label for="signup-email">Email</label>
+          <input type="email" id="signup-email" placeholder="you@example.com" required />
+        </div>
+        <div class="form-group">
+          <label for="signup-phone">Phone (for SMS notifications)</label>
+          <input type="tel" id="signup-phone" placeholder="+1234567890" />
+        </div>
+        <div class="form-group">
+          <label for="signup-password">Password</label>
+          <input type="password" id="signup-password" placeholder="••••••••" required minlength="6" />
+        </div>
+        <button type="submit" class="btn btn-primary" id="signup-btn">Create Account</button>
+      </form>
+
+      <div class="auth-switch">
+        <span id="auth-switch-text">Don't have an account?</span>
+        <a id="auth-switch-link">Sign up</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== MAIN APP ==================== -->
+  <div id="app" class="app">
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <h2>Chats</h2>
+        <div class="user-chip" id="current-user-chip" title="Edit profile">
+          <div class="avatar-placeholder" id="my-avatar">?</div>
+          <span id="my-username">User</span>
+        </div>
+      </div>
+
+      <div class="search-box">
+        <label for="user-search" class="sr-only">Search users</label>
+        <input type="text" id="user-search" placeholder="Search users..." />
+      </div>
+
+      <div class="users-list" id="users-list">
+        <!-- Users will be rendered here -->
+      </div>
+    </aside>
+
+    <!-- Chat Area -->
+    <main class="chat-area">
+      <div id="chat-empty" class="chat-empty">
+        <div class="icon">💬</div>
+        <p>Select a user to start a secure conversation</p>
+      </div>
+
+      <div id="chat-active" style="display:none; flex-direction:column; height:100%">
+        <div class="chat-header" id="chat-header">
+          <div class="avatar-placeholder" id="receiver-avatar">?</div>
+          <div class="info">
+            <h3 id="receiver-name">Receiver</h3>
+            <p id="receiver-username">@username</p>
+          </div>
+        </div>
+
+        <div class="messages-container" id="messages-container">
+          <!-- Messages appear here -->
+        </div>
+
+        <div class="chat-input-area">
+          <label for="message-input" class="sr-only">Message</label>
+          <textarea id="message-input" placeholder="Type an encrypted message..." rows="1"></textarea>
+          <button class="send-btn" id="send-btn" title="Send">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="22" y1="2" x2="11" y2="13"></line>
+              <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+            </svg>
+          </button>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- ==================== PROFILE MODAL ==================== -->
+  <div class="modal-overlay" id="profile-modal">
+    <div class="modal">
+      <h2>Your Profile</h2>
+      <div class="avatar-upload">
+        <img id="profile-avatar-preview" style="display:none" />
+        <div class="avatar-placeholder" id="profile-avatar-placeholder">?</div>
+        <label for="avatar-input">Change photo</label>
+        <input type="file" id="avatar-input" accept="image/*" />
+      </div>
+      <div class="form-group">
+        <label for="profile-username">Username</label>
+        <input type="text" id="profile-username" />
+      </div>
+      <div class="form-group">
+        <label for="profile-fullname">Full Name</label>
+        <input type="text" id="profile-fullname" />
+      </div>
+      <div class="form-group">
+        <label for="profile-phone">Phone (SMS notifications)</label>
+        <input type="tel" id="profile-phone" placeholder="+1234567890" />
+      </div>
+      <div class="modal-actions">
+        <button class="btn btn-secondary" id="profile-cancel">Cancel</button>
+        <button class="btn btn-primary" id="profile-save">Save</button>
+      </div>
+      <button class="btn btn-ghost" id="logout-btn" style="width:100%; margin-top:16px; color:var(--danger)">
+        Sign Out
+      </button>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
