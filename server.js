@@ -10,14 +10,9 @@ const { createClient } = require('@supabase/supabase-js');
 // ============================================================
 const PORT = process.env.PORT || 3000;
 
-// Supabase credentials
 const SUPABASE_URL = 'https://gtxbpxdehdsfdqkaamqf.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd0eGJweGRlaGRzZmRxa2FhbXFmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODc5MTk0MjYsImV4cCI6MjEwMzQ5NTQyNn0.Dp_ZY4xe8gcGQUpT9n1lf_iIBNDDc5Khxyo0M3uwCIM';
 const SUPABASE_SERVICE_ROLE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd0eGJweGRlaGRzZmRxa2FhbXFmIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4NzkxOTQyNiwiZXhwIjoyMTAzNDk1NDI2fQ.sMQQoYWqjs7qAYJ7W_953Xn9svSM4K2Q4R_d7ZLyHrY';
 
-// ============================================================
-//  INIT SUPABASE
-// ============================================================
 const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
 // ============================================================
@@ -64,15 +59,13 @@ function serveIndex(req, res) {
     });
 }
 
-// ---------- Register (FIXED) ----------
+// ---------- Register (with full error logging) ----------
 async function register(req, res) {
     let body = '';
     req.on('data', chunk => { body += chunk; });
     req.on('end', async () => {
         try {
             const { username, password, full_name, phone } = JSON.parse(body);
-            
-            // Validate input
             if (!username || !password) {
                 res.writeHead(400);
                 res.end(JSON.stringify({ error: 'Username and password required' }));
@@ -89,7 +82,7 @@ async function register(req, res) {
                 return;
             }
 
-            // 1. Check if username already exists
+            // 1. Check username uniqueness
             const { data: existing, error: checkError } = await supabase
                 .from('profiles')
                 .select('username')
@@ -102,7 +95,6 @@ async function register(req, res) {
                 res.end(JSON.stringify({ error: 'Database error: ' + checkError.message }));
                 return;
             }
-
             if (existing) {
                 res.writeHead(400);
                 res.end(JSON.stringify({ error: 'Username already taken' }));
@@ -115,15 +107,11 @@ async function register(req, res) {
                 email: email,
                 password: password,
                 email_confirm: true,
-                user_metadata: { 
-                    username: username, 
-                    full_name: full_name || '',
-                    phone: phone || null 
-                }
+                user_metadata: { username, full_name: full_name || '', phone: phone || null }
             });
 
             if (authError) {
-                console.error('Auth error:', authError);
+                console.error('Auth creation error:', authError);
                 res.writeHead(400);
                 res.end(JSON.stringify({ error: 'Auth error: ' + authError.message }));
                 return;
@@ -131,7 +119,7 @@ async function register(req, res) {
 
             const userId = authData.user.id;
 
-            // 3. Create profile record
+            // 3. Insert profile
             const { data: profileData, error: profileError } = await supabase
                 .from('profiles')
                 .insert({
@@ -146,12 +134,12 @@ async function register(req, res) {
                 .single();
 
             if (profileError) {
-                console.error('Profile insert error:', profileError);
+                console.error('❌ Profile insert error:', profileError);
                 // Rollback: delete auth user
                 await supabase.auth.admin.deleteUser(userId);
                 res.writeHead(500);
-                res.end(JSON.stringify({ 
-                    error: 'Failed to create profile', 
+                res.end(JSON.stringify({
+                    error: 'Failed to create profile',
                     details: profileError.message,
                     code: profileError.code
                 }));
@@ -160,10 +148,7 @@ async function register(req, res) {
 
             console.log(`✅ User registered: ${username} (${userId})`);
             res.writeHead(201, { 'Content-Type': 'application/json' });
-            res.end(JSON.stringify({ 
-                success: true, 
-                user: { id: userId, username } 
-            }));
+            res.end(JSON.stringify({ success: true, user: { id: userId, username } }));
 
         } catch (err) {
             console.error('Registration error:', err);
@@ -180,7 +165,6 @@ async function login(req, res) {
     req.on('end', async () => {
         try {
             const { username, password } = JSON.parse(body);
-            
             if (!username || !password) {
                 res.writeHead(400);
                 res.end(JSON.stringify({ error: 'Username and password required' }));
@@ -195,6 +179,7 @@ async function login(req, res) {
                 .single();
 
             if (profileError || !profile) {
+                console.error('Profile fetch error:', profileError);
                 res.writeHead(401);
                 res.end(JSON.stringify({ error: 'Invalid credentials' }));
                 return;
@@ -208,12 +193,13 @@ async function login(req, res) {
             });
 
             if (authError) {
+                console.error('Auth login error:', authError);
                 res.writeHead(401);
                 res.end(JSON.stringify({ error: 'Invalid credentials' }));
                 return;
             }
 
-            // Return user data (excluding sensitive fields)
+            // Return user data
             const responseUser = {
                 id: profile.id,
                 username: profile.username,
@@ -238,7 +224,7 @@ async function login(req, res) {
     });
 }
 
-// ---------- Get current user ----------
+// ---------- Get current user (for auto-login) ----------
 async function getMe(req, res) {
     const userId = req.user.id;
     const { data: profile, error } = await supabase
@@ -246,8 +232,9 @@ async function getMe(req, res) {
         .select('*')
         .eq('id', userId)
         .single();
-    
+
     if (error) {
+        console.error('GetMe error:', error);
         res.writeHead(404);
         res.end(JSON.stringify({ error: 'User not found' }));
         return;
@@ -262,7 +249,7 @@ async function getUsers(req, res) {
         .from('profiles')
         .select('id, username, full_name, phone, avatar_url, public_key')
         .neq('id', req.user.id);
-    
+
     if (error) {
         console.error('Get users error:', error);
         res.writeHead(500);
@@ -281,13 +268,13 @@ async function getMessages(req, res, query) {
         res.end(JSON.stringify({ error: 'userId required' }));
         return;
     }
-    
+
     const { data, error } = await supabase
         .from('messages')
         .select('*')
         .or(`sender_id.eq.${userId},receiver_id.eq.${userId}`)
         .order('created_at', { ascending: true });
-    
+
     if (error) {
         console.error('Get messages error:', error);
         res.writeHead(500);
@@ -305,13 +292,11 @@ async function postMessage(req, res) {
     req.on('end', async () => {
         try {
             const { sender_id, receiver_id, ciphertext, iv } = JSON.parse(body);
-            
             if (!sender_id || !receiver_id || !ciphertext) {
                 res.writeHead(400);
                 res.end(JSON.stringify({ error: 'Missing fields' }));
                 return;
             }
-            
             if (sender_id !== req.user.id) {
                 res.writeHead(403);
                 res.end(JSON.stringify({ error: 'Cannot send as another user' }));
@@ -357,14 +342,12 @@ async function updateUser(req, res) {
     req.on('end', async () => {
         try {
             const updates = JSON.parse(body);
-            
             if (!updates.id || updates.id !== req.user.id) {
                 res.writeHead(403);
                 res.end(JSON.stringify({ error: 'You can only update your own profile' }));
                 return;
             }
 
-            // Check username uniqueness
             if (updates.username) {
                 const { data: existing, error } = await supabase
                     .from('profiles')
@@ -372,7 +355,6 @@ async function updateUser(req, res) {
                     .eq('username', updates.username)
                     .neq('id', req.user.id)
                     .maybeSingle();
-                    
                 if (existing) {
                     res.writeHead(400);
                     res.end(JSON.stringify({ error: 'Username already taken' }));
@@ -413,7 +395,6 @@ async function deleteMessage(req, res, query) {
         return;
     }
 
-    // First check if the message belongs to the user
     const { data: msg, error: checkError } = await supabase
         .from('messages')
         .select('sender_id')
@@ -467,7 +448,7 @@ function router(req, res) {
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-    
+
     if (method === 'OPTIONS') {
         res.writeHead(204);
         res.end();
@@ -490,7 +471,6 @@ function router(req, res) {
     if (pathname.startsWith('/api/')) {
         authenticate(req, res, () => {
             const apiPath = pathname.replace('/api/', '');
-            
             switch (apiPath) {
                 case 'me':
                     if (method === 'GET') getMe(req, res);
