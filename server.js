@@ -12,8 +12,8 @@ const PORT = process.env.PORT || 3000;
 
 // Supabase credentials (replace with your own)
 const SUPABASE_URL = 'https://gtxbpxdehdsfdqkaamqf.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd0eGJweGRlaGRzZmRxa2FhbXFmIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4NzkxOTQyNiwiZXhwIjoyMTAzNDk1NDI2fQ.sMQQoYWqjs7qAYJ7W_953Xn9svSM4K2Q4R_d7ZLyHrY';
-const SUPABASE_SERVICE_ROLE_KEY = 'your-service-role-key'; // Keep this secret!
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd0eGJweGRlaGRzZmRxa2FhbXFmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODc5MTk0MjYsImV4cCI6MjEwMzQ5NTQyNn0.Dp_ZY4xe8gcGQUpT9n1lf_iIBNDDc5Khxyo0M3uwCIM';
+const SUPABASE_SERVICE_ROLE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd0eGJweGRlaGRzZmRxa2FhbXFmIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4NzkxOTQyNiwiZXhwIjoyMTAzNDk1NDI2fQ.sMQQoYWqjs7qAYJ7W_953Xn9svSM4K2Q4R_d7ZLyHrY'; // Keep this secret!
 
 // ============================================================
 //  INIT SUPABASE (with service role for admin operations)
