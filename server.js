@@ -2,144 +2,55 @@ const http = require('http');
 const fs = require('fs');
 const path = require('path');
 const url = require('url');
-const crypto = require('crypto');
 const { v4: uuidv4 } = require('uuid');
+const { createClient } = require('@supabase/supabase-js');
 
 // ============================================================
 //  CONFIGURATION
 // ============================================================
 const PORT = process.env.PORT || 3000;
-const DATA_DIR = path.join(__dirname, 'data');
-const MESSAGES_FILE = path.join(DATA_DIR, 'messages.json');
-const USERS_FILE = path.join(DATA_DIR, 'users.json');
-const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-this';
+
+// Supabase credentials (replace with your own)
+const SUPABASE_URL = 'https://gtxbpxdehdsfdqkaamqf.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd0eGJweGRlaGRzZmRxa2FhbXFmIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4NzkxOTQyNiwiZXhwIjoyMTAzNDk1NDI2fQ.sMQQoYWqjs7qAYJ7W_953Xn9svSM4K2Q4R_d7ZLyHrY';
+const SUPABASE_SERVICE_ROLE_KEY = 'your-service-role-key'; // Keep this secret!
 
 // ============================================================
-//  ENSURE DATA DIRECTORY & FILES
+//  INIT SUPABASE (with service role for admin operations)
 // ============================================================
-function ensureDataFiles() {
-    if (!fs.existsSync(DATA_DIR)) {
-        fs.mkdirSync(DATA_DIR, { recursive: true });
-    }
-    if (!fs.existsSync(MESSAGES_FILE)) {
-        fs.writeFileSync(MESSAGES_FILE, JSON.stringify([]), 'utf8');
-    }
-    if (!fs.existsSync(USERS_FILE)) {
-        // Seed with a default user (for testing)
-        const defaultUsers = [
-            {
-                id: 'me',
-                username: 'JohnDoe',
-                password_hash: hashPassword('password123'),
-                salt: 'somesalt',
-                full_name: 'John Doe',
-                phone: '+1 234 567 890',
-                avatar_url: null
-            },
-            {
-                id: 'u1',
-                username: 'alice',
-                password_hash: hashPassword('alice123'),
-                salt: 'somesalt2',
-                full_name: 'Alice Wonder',
-                phone: null,
-                avatar_url: null
-            }
-        ];
-        fs.writeFileSync(USERS_FILE, JSON.stringify(defaultUsers, null, 2), 'utf8');
-    }
-}
+const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
 // ============================================================
-//  PASSWORD HASHING
+//  AUTH MIDDLEWARE (verify Supabase JWT)
 // ============================================================
-function hashPassword(password, salt = null) {
-    if (!salt) salt = crypto.randomBytes(16).toString('hex');
-    const hash = crypto.pbkdf2Sync(password, salt, 10000, 64, 'sha512').toString('hex');
-    return { hash, salt };
-}
-
-function verifyPassword(password, storedHash, salt) {
-    const { hash } = hashPassword(password, salt);
-    return hash === storedHash;
-}
-
-// ============================================================
-//  JWT HELPERS (simplified HMAC)
-// ============================================================
-function signJWT(payload) {
-    const header = { alg: 'HS256', typ: 'JWT' };
-    const encodedHeader = Buffer.from(JSON.stringify(header)).toString('base64url');
-    const encodedPayload = Buffer.from(JSON.stringify(payload)).toString('base64url');
-    const signature = crypto
-        .createHmac('sha256', JWT_SECRET)
-        .update(`${encodedHeader}.${encodedPayload}`)
-        .digest('base64url');
-    return `${encodedHeader}.${encodedPayload}.${signature}`;
-}
-
-function verifyJWT(token) {
-    const parts = token.split('.');
-    if (parts.length !== 3) return null;
-    const [encodedHeader, encodedPayload, signature] = parts;
-    const expectedSignature = crypto
-        .createHmac('sha256', JWT_SECRET)
-        .update(`${encodedHeader}.${encodedPayload}`)
-        .digest('base64url');
-    if (signature !== expectedSignature) return null;
-    try {
-        return JSON.parse(Buffer.from(encodedPayload, 'base64url').toString('utf8'));
-    } catch {
-        return null;
-    }
-}
-
-// ============================================================
-//  DATA HELPERS
-// ============================================================
-function readMessages() {
-    try {
-        return JSON.parse(fs.readFileSync(MESSAGES_FILE, 'utf8'));
-    } catch { return []; }
-}
-function writeMessages(messages) {
-    fs.writeFileSync(MESSAGES_FILE, JSON.stringify(messages, null, 2), 'utf8');
-}
-function readUsers() {
-    try {
-        return JSON.parse(fs.readFileSync(USERS_FILE, 'utf8'));
-    } catch { return []; }
-}
-function writeUsers(users) {
-    fs.writeFileSync(USERS_FILE, JSON.stringify(users, null, 2), 'utf8');
-}
-
-// ============================================================
-//  AUTH MIDDLEWARE
-// ============================================================
-function authenticate(req, res, next) {
+async function authenticate(req, res, next) {
     const authHeader = req.headers.authorization;
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
         res.writeHead(401, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ error: 'Unauthorized' }));
+        res.end(JSON.stringify({ error: 'Missing or invalid token' }));
         return;
     }
     const token = authHeader.slice(7);
-    const payload = verifyJWT(token);
-    if (!payload || !payload.userId) {
+    try {
+        const { data: { user }, error } = await supabase.auth.getUser(token);
+        if (error || !user) {
+            res.writeHead(401, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ error: 'Invalid token' }));
+            return;
+        }
+        req.user = user; // Attach user object
+        next();
+    } catch (err) {
         res.writeHead(401, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ error: 'Invalid token' }));
-        return;
+        res.end(JSON.stringify({ error: 'Authentication failed' }));
     }
-    req.userId = payload.userId;
-    next();
 }
 
 // ============================================================
 //  ROUTE HANDLERS
 // ============================================================
 
-// ---------- Serve static HTML ----------
+// ---------- Serve index.html ----------
 function serveIndex(req, res) {
     const filePath = path.join(__dirname, 'index.html');
     fs.readFile(filePath, (err, content) => {
@@ -153,11 +64,11 @@ function serveIndex(req, res) {
     });
 }
 
-// ---------- API: Register ----------
-function register(req, res) {
+// ---------- Register ----------
+async function register(req, res) {
     let body = '';
     req.on('data', chunk => { body += chunk; });
-    req.on('end', () => {
+    req.on('end', async () => {
         try {
             const { username, password, full_name, phone } = JSON.parse(body);
             if (!username || !password) {
@@ -165,26 +76,54 @@ function register(req, res) {
                 res.end(JSON.stringify({ error: 'Username and password required' }));
                 return;
             }
-            const users = readUsers();
-            if (users.find(u => u.username === username)) {
+
+            // 1. Check if username already exists in profiles table
+            const { data: existing, error: checkError } = await supabase
+                .from('profiles')
+                .select('username')
+                .eq('username', username)
+                .maybeSingle();
+            if (existing) {
                 res.writeHead(400);
                 res.end(JSON.stringify({ error: 'Username already taken' }));
                 return;
             }
-            const { hash, salt } = hashPassword(password);
-            const newUser = {
-                id: uuidv4(),
-                username,
-                password_hash: hash,
-                salt,
-                full_name: full_name || '',
-                phone: phone || null,
-                avatar_url: null
-            };
-            users.push(newUser);
-            writeUsers(users);
+
+            // 2. Create user in Supabase Auth
+            const { data: authData, error: authError } = await supabase.auth.admin.createUser({
+                email: `${username}@${username}.temp`, // Supabase requires email, we use a dummy
+                password,
+                email_confirm: true,
+                user_metadata: { username, full_name, phone }
+            });
+            if (authError) {
+                res.writeHead(400);
+                res.end(JSON.stringify({ error: authError.message }));
+                return;
+            }
+
+            const userId = authData.user.id;
+
+            // 3. Create profile record (public_key and other fields)
+            const { error: profileError } = await supabase
+                .from('profiles')
+                .insert([{
+                    id: userId,
+                    username,
+                    full_name: full_name || '',
+                    phone: phone || null,
+                    public_key: null // will be set later
+                }]);
+            if (profileError) {
+                // Rollback: delete auth user if profile insert fails
+                await supabase.auth.admin.deleteUser(userId);
+                res.writeHead(500);
+                res.end(JSON.stringify({ error: 'Failed to create profile' }));
+                return;
+            }
+
             res.writeHead(201, { 'Content-Type': 'application/json' });
-            res.end(JSON.stringify({ success: true, user: { id: newUser.id, username: newUser.username } }));
+            res.end(JSON.stringify({ success: true, user: { id: userId, username } }));
         } catch (err) {
             res.writeHead(400);
             res.end(JSON.stringify({ error: 'Invalid request' }));
@@ -192,32 +131,63 @@ function register(req, res) {
     });
 }
 
-// ---------- API: Login ----------
-function login(req, res) {
+// ---------- Login ----------
+async function login(req, res) {
     let body = '';
     req.on('data', chunk => { body += chunk; });
-    req.on('end', () => {
+    req.on('end', async () => {
         try {
             const { username, password } = JSON.parse(body);
-            const users = readUsers();
-            const user = users.find(u => u.username === username);
-            if (!user) {
+            if (!username || !password) {
+                res.writeHead(400);
+                res.end(JSON.stringify({ error: 'Username and password required' }));
+                return;
+            }
+
+            // We need to get the user's email from the profiles table or use a predictable email
+            // Since we used dummy email pattern, we can construct it.
+            const { data: profile, error: profileError } = await supabase
+                .from('profiles')
+                .select('id')
+                .eq('username', username)
+                .single();
+            if (profileError || !profile) {
                 res.writeHead(401);
                 res.end(JSON.stringify({ error: 'Invalid credentials' }));
                 return;
             }
-            if (!verifyPassword(password, user.password_hash, user.salt)) {
+
+            // Attempt login with Supabase Auth using the dummy email
+            const email = `${username}@${username}.temp`;
+            const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+                email,
+                password
+            });
+            if (authError) {
                 res.writeHead(401);
                 res.end(JSON.stringify({ error: 'Invalid credentials' }));
                 return;
             }
-            const payload = { userId: user.id, username: user.username };
-            const token = signJWT(payload);
-            const responseUser = { ...user };
-            delete responseUser.password_hash;
-            delete responseUser.salt;
+
+            // Get full profile
+            const { data: fullProfile, error: fullError } = await supabase
+                .from('profiles')
+                .select('*')
+                .eq('id', authData.user.id)
+                .single();
+
+            if (fullError) {
+                res.writeHead(500);
+                res.end(JSON.stringify({ error: 'Failed to fetch profile' }));
+                return;
+            }
+
+            const responseUser = { ...fullProfile };
             res.writeHead(200, { 'Content-Type': 'application/json' });
-            res.end(JSON.stringify({ token, user: responseUser }));
+            res.end(JSON.stringify({
+                token: authData.session.access_token,
+                user: responseUser
+            }));
         } catch (err) {
             res.writeHead(400);
             res.end(JSON.stringify({ error: 'Invalid request' }));
@@ -225,56 +195,65 @@ function login(req, res) {
     });
 }
 
-// ---------- API: Get current user (from token) ----------
-function getMe(req, res) {
-    const userId = req.userId;
-    const users = readUsers();
-    const user = users.find(u => u.id === userId);
-    if (!user) {
+// ---------- Get current user ----------
+async function getMe(req, res) {
+    const userId = req.user.id;
+    const { data: profile, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', userId)
+        .single();
+    if (error) {
         res.writeHead(404);
         res.end(JSON.stringify({ error: 'User not found' }));
         return;
     }
-    const responseUser = { ...user };
-    delete responseUser.password_hash;
-    delete responseUser.salt;
     res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify(responseUser));
+    res.end(JSON.stringify(profile));
 }
 
-// ---------- API: Get all users (protected) ----------
-function getUsers(req, res) {
-    const users = readUsers();
-    const sanitized = users.map(u => {
-        const { password_hash, salt, ...rest } = u;
-        return rest;
-    });
+// ---------- Get all users ----------
+async function getUsers(req, res) {
+    const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .neq('id', req.user.id);
+    if (error) {
+        res.writeHead(500);
+        res.end(JSON.stringify({ error: 'Failed to fetch users' }));
+        return;
+    }
     res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify(sanitized));
+    res.end(JSON.stringify(data));
 }
 
-// ---------- API: Get messages for a user (protected) ----------
-function getMessages(req, res, query) {
+// ---------- Get messages for a user ----------
+async function getMessages(req, res, query) {
     const userId = query.userId || query.user_id;
     if (!userId) {
         res.writeHead(400);
         res.end(JSON.stringify({ error: 'userId required' }));
         return;
     }
-    const allMessages = readMessages();
-    const userMessages = allMessages.filter(m =>
-        m.sender_id === userId || m.receiver_id === userId
-    );
-    userMessages.sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+    const { data, error } = await supabase
+        .from('messages')
+        .select('*')
+        .or(`sender_id.eq.${userId},receiver_id.eq.${userId}`)
+        .order('created_at', { ascending: true });
+    if (error) {
+        res.writeHead(500);
+        res.end(JSON.stringify({ error: 'Failed to fetch messages' }));
+        return;
+    }
     res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify(userMessages));
+    res.end(JSON.stringify(data));
 }
 
-// ---------- API: Send a message (protected) ----------
-function postMessage(req, res) {
+// ---------- Send a message ----------
+async function postMessage(req, res) {
     let body = '';
     req.on('data', chunk => { body += chunk; });
-    req.on('end', () => {
+    req.on('end', async () => {
         try {
             const { sender_id, receiver_id, ciphertext, iv } = JSON.parse(body);
             if (!sender_id || !receiver_id || !ciphertext) {
@@ -282,10 +261,10 @@ function postMessage(req, res) {
                 res.end(JSON.stringify({ error: 'Missing fields' }));
                 return;
             }
-            const users = readUsers();
-            if (!users.find(u => u.id === sender_id) || !users.find(u => u.id === receiver_id)) {
-                res.writeHead(400);
-                res.end(JSON.stringify({ error: 'Invalid user IDs' }));
+            // Validate that sender is the authenticated user
+            if (sender_id !== req.user.id) {
+                res.writeHead(403);
+                res.end(JSON.stringify({ error: 'Cannot send as another user' }));
                 return;
             }
             const newMessage = {
@@ -296,11 +275,18 @@ function postMessage(req, res) {
                 iv: iv || '',
                 created_at: new Date().toISOString()
             };
-            const messages = readMessages();
-            messages.push(newMessage);
-            writeMessages(messages);
+            const { data, error } = await supabase
+                .from('messages')
+                .insert([newMessage])
+                .select()
+                .single();
+            if (error) {
+                res.writeHead(500);
+                res.end(JSON.stringify({ error: 'Failed to save message' }));
+                return;
+            }
             res.writeHead(201, { 'Content-Type': 'application/json' });
-            res.end(JSON.stringify(newMessage));
+            res.end(JSON.stringify(data));
         } catch (err) {
             res.writeHead(400);
             res.end(JSON.stringify({ error: 'Invalid request' }));
@@ -308,47 +294,45 @@ function postMessage(req, res) {
     });
 }
 
-// ---------- API: Update user (protected) ----------
-function updateUser(req, res) {
+// ---------- Update user ----------
+async function updateUser(req, res) {
     let body = '';
     req.on('data', chunk => { body += chunk; });
-    req.on('end', () => {
+    req.on('end', async () => {
         try {
             const updates = JSON.parse(body);
-            if (!updates.id) {
-                res.writeHead(400);
-                res.end(JSON.stringify({ error: 'User ID required' }));
-                return;
-            }
-            // Ensure user is updating themselves
-            if (updates.id !== req.userId) {
+            if (!updates.id || updates.id !== req.user.id) {
                 res.writeHead(403);
                 res.end(JSON.stringify({ error: 'You can only update your own profile' }));
                 return;
             }
-            const users = readUsers();
-            const index = users.findIndex(u => u.id === updates.id);
-            if (index === -1) {
-                res.writeHead(404);
-                res.end(JSON.stringify({ error: 'User not found' }));
-                return;
-            }
             // Check username uniqueness if changed
-            if (updates.username && updates.username !== users[index].username) {
-                if (users.some(u => u.username === updates.username && u.id !== updates.id)) {
+            if (updates.username) {
+                const { data: existing, error } = await supabase
+                    .from('profiles')
+                    .select('id')
+                    .eq('username', updates.username)
+                    .neq('id', req.user.id)
+                    .maybeSingle();
+                if (existing) {
                     res.writeHead(400);
                     res.end(JSON.stringify({ error: 'Username already taken' }));
                     return;
                 }
             }
-            users[index] = { ...users[index], ...updates };
-            // Don't allow changing password_hash or salt via this endpoint
-            writeUsers(users);
-            const responseUser = { ...users[index] };
-            delete responseUser.password_hash;
-            delete responseUser.salt;
-            res.writeHead(200);
-            res.end(JSON.stringify(responseUser));
+            const { data, error } = await supabase
+                .from('profiles')
+                .update(updates)
+                .eq('id', req.user.id)
+                .select()
+                .single();
+            if (error) {
+                res.writeHead(500);
+                res.end(JSON.stringify({ error: 'Update failed' }));
+                return;
+            }
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify(data));
         } catch (err) {
             res.writeHead(400);
             res.end(JSON.stringify({ error: 'Invalid request' }));
@@ -387,33 +371,26 @@ function router(req, res) {
 
     // Protected routes
     if (pathname.startsWith('/api/')) {
-        // Apply authentication middleware
         authenticate(req, res, () => {
             const apiPath = pathname.replace('/api/', '');
-
-            if (apiPath === 'me' && method === 'GET') {
-                getMe(req, res);
-                return;
+            switch (apiPath) {
+                case 'me':
+                    if (method === 'GET') getMe(req, res);
+                    else notFound(res);
+                    break;
+                case 'users':
+                    if (method === 'GET') getUsers(req, res);
+                    else if (method === 'PUT') updateUser(req, res);
+                    else notFound(res);
+                    break;
+                case 'messages':
+                    if (method === 'GET') getMessages(req, res, query);
+                    else if (method === 'POST') postMessage(req, res);
+                    else notFound(res);
+                    break;
+                default:
+                    notFound(res);
             }
-            if (apiPath === 'users' && method === 'GET') {
-                getUsers(req, res);
-                return;
-            }
-            if (apiPath === 'users' && method === 'PUT') {
-                updateUser(req, res);
-                return;
-            }
-            if (apiPath === 'messages' && method === 'GET') {
-                getMessages(req, res, query);
-                return;
-            }
-            if (apiPath === 'messages' && method === 'POST') {
-                postMessage(req, res);
-                return;
-            }
-            // Fallback
-            res.writeHead(404);
-            res.end(JSON.stringify({ error: 'API endpoint not found' }));
         });
         return;
     }
@@ -424,7 +401,7 @@ function router(req, res) {
         return;
     }
 
-    // Static files
+    // Static files (optional)
     const filePath = path.join(__dirname, pathname);
     if (fs.existsSync(filePath) && fs.statSync(filePath).isFile()) {
         const ext = path.extname(filePath);
@@ -451,18 +428,19 @@ function router(req, res) {
         return;
     }
 
+    notFound(res);
+}
+
+function notFound(res) {
     res.writeHead(404);
-    res.end('Not Found');
+    res.end(JSON.stringify({ error: 'Not found' }));
 }
 
 // ============================================================
 //  START SERVER
 // ============================================================
-ensureDataFiles();
-
 const server = http.createServer(router);
 server.listen(PORT, () => {
     console.log(`🚀 Server running on http://localhost:${PORT}`);
-    console.log(`📁 Data directory: ${DATA_DIR}`);
-    console.log(`🔐 JWT secret: ${JWT_SECRET}`);
+    console.log(`🔗 Using Supabase at ${SUPABASE_URL}`);
 });
