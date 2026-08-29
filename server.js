@@ -59,7 +59,7 @@ function serveIndex(req, res) {
     });
 }
 
-// ---------- Register (with full error logging) ----------
+// ---------- Register ----------
 async function register(req, res) {
     let body = '';
     req.on('data', chunk => { body += chunk; });
@@ -82,7 +82,7 @@ async function register(req, res) {
                 return;
             }
 
-            // 1. Check username uniqueness
+            // Check username uniqueness
             const { data: existing, error: checkError } = await supabase
                 .from('profiles')
                 .select('username')
@@ -101,7 +101,7 @@ async function register(req, res) {
                 return;
             }
 
-            // 2. Create user in Supabase Auth
+            // Create user in Supabase Auth
             const email = `${username}@temp.user`;
             const { data: authData, error: authError } = await supabase.auth.admin.createUser({
                 email: email,
@@ -119,7 +119,7 @@ async function register(req, res) {
 
             const userId = authData.user.id;
 
-            // 3. Insert profile
+            // Insert profile
             const { data: profileData, error: profileError } = await supabase
                 .from('profiles')
                 .insert({
@@ -158,7 +158,7 @@ async function register(req, res) {
     });
 }
 
-// ---------- Login ----------
+// ---------- Login (with auto‑profile‑creation fallback) ----------
 async function login(req, res) {
     let body = '';
     req.on('data', chunk => { body += chunk; });
@@ -171,21 +171,7 @@ async function login(req, res) {
                 return;
             }
 
-            // Get user from profiles
-            const { data: profile, error: profileError } = await supabase
-                .from('profiles')
-                .select('*')
-                .eq('username', username)
-                .single();
-
-            if (profileError || !profile) {
-                console.error('Profile fetch error:', profileError);
-                res.writeHead(401);
-                res.end(JSON.stringify({ error: 'Invalid credentials' }));
-                return;
-            }
-
-            // Login with Supabase Auth
+            // Try to login with Supabase Auth
             const email = `${username}@temp.user`;
             const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
                 email: email,
@@ -199,7 +185,40 @@ async function login(req, res) {
                 return;
             }
 
-            // Return user data
+            const userId = authData.user.id;
+
+            // Fetch or create profile
+            let { data: profile, error: profileError } = await supabase
+                .from('profiles')
+                .select('*')
+                .eq('id', userId)
+                .single();
+
+            if (profileError || !profile) {
+                // Profile missing – create it now (handles case where registration failed after auth)
+                console.log(`Creating profile for ${username} on login`);
+                const { data: newProfile, error: insertError } = await supabase
+                    .from('profiles')
+                    .insert({
+                        id: userId,
+                        username: username,
+                        full_name: username, // fallback
+                        phone: null,
+                        public_key: null,
+                        avatar_url: null
+                    })
+                    .select()
+                    .single();
+
+                if (insertError) {
+                    console.error('Profile creation on login failed:', insertError);
+                    res.writeHead(500);
+                    res.end(JSON.stringify({ error: 'Failed to create profile' }));
+                    return;
+                }
+                profile = newProfile;
+            }
+
             const responseUser = {
                 id: profile.id,
                 username: profile.username,
@@ -224,7 +243,7 @@ async function login(req, res) {
     });
 }
 
-// ---------- Get current user (for auto-login) ----------
+// ---------- Get current user ----------
 async function getMe(req, res) {
     const userId = req.user.id;
     const { data: profile, error } = await supabase
