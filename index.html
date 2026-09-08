@@ -7,6 +7,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <style>
+/* -------- same as before -------- */
 :root{--nav:#0b1d33;--nav2:#112a47;--blue:#1683f5;--blue2:#0d6efd;--bg:#f3f6fa;--card:#fff;--line:#e2e8f0;--muted:#667085;--good:#16a36a;--warn:#f59e0b;--bad:#ef4444;--purple:#7357e8;--shadow:0 3px 14px rgba(15,35,60,.07)}
 *{box-sizing:border-box}body{margin:0;background:var(--bg);font:14px Inter,Arial,sans-serif;color:#172033}
 header{height:64px;background:linear-gradient(90deg,#0b1d33,#12355a);color:#fff;padding:10px 24px 10px 24px;position:fixed;left:0;right:0;top:0;z-index:50;display:flex;align-items:center;gap:20px;box-shadow:0 2px 12px rgba(0,0,0,.15)}
@@ -54,7 +55,7 @@ label{display:block;font-weight:700;font-size:12px;color:#56657a;margin:8px 0 5p
 </div><div class="actions"><button class="btn green" onclick="upsertProject()">Save Project to Supabase</button><button class="btn gray" onclick="loadProjects()">Load Projects</button></div><div id="projects"></div></div>
 </section>
 
-<!-- Drawing Upload – the single source of truth -->
+<!-- Drawing Upload -->
 <section id="drawingUpload" class="page">
 <div class="card"><h2>📐 Upload Drawing – Auto‑generate BOQ & MPP</h2>
 <p class="muted">Fill in the drawing information from the title block. Upload the file once – the system will automatically create the Part, BOQ row, and MPP operations.</p>
@@ -62,7 +63,7 @@ label{display:block;font-weight:700;font-size:12px;color:#56657a;margin:8px 0 5p
 
 <div class="grid g3">
   <div><label>Drawing No. (DWG NO)</label><input id="drawingNo" placeholder="LSS-T1-15-14-33"></div>
-  <div><label>Part No.</label><input id="uploadPartNo" placeholder="P-1001 (leave blank to auto-generate)"></div>
+  <div><label>Part No. (leave blank to auto‑generate)</label><input id="uploadPartNo" placeholder="P-1001"></div>
   <div><label>Part Name</label><input id="uploadPartName" placeholder="Screw support-2"></div>
 </div>
 <div class="grid g3">
@@ -83,6 +84,7 @@ label{display:block;font-weight:700;font-size:12px;color:#56657a;margin:8px 0 5p
 <div class="actions">
   <button class="btn green" onclick="uploadDrawingAndGenerate()">⬆ Upload & Generate BOQ/MPP</button>
   <button class="btn gray" onclick="loadFilesForProject()">Refresh file list</button>
+  <button class="btn orange" onclick="refreshAllData()">🔄 Refresh BOQ / MPP / Parts</button>
 </div>
 <div id="uploadStatus" class="muted" style="margin-top:10px;"></div>
 </div>
@@ -196,16 +198,25 @@ async function selectProject(id){
   $('fx').value=data.fx_rate||150;
   $('status').value=data.status||'Draft';
   try {
-    const parts=await V6Brain.data('parts',id); DB.parts=parts.data||[];
-    const boq=await V6Brain.data('boq',id); DB.boq=boq.data||[];
-    const suppliers=await V6Brain.data('suppliers',id); DB.suppliers=suppliers.data||[];
-    const ops=await V6Brain.data('mpp_operations',id); DB.ops=ops.data||[];
-    const files=await V6Brain.data('files',id); DB.files=files.data||[];
-    renderParts(); renderBoq(); renderSuppliers(); renderOps(); renderFiles(); calc();
+    await refreshAllData();
   } catch(e){ alert(e.message); }
 }
 
-// -------- Drawing Upload – Auto‑generate BOQ & MPP (with UPSERT fix) --------
+// -------- Refresh all data from Supabase --------
+async function refreshAllData(){
+  if(!DB.projectId) return alert('Open a project first.');
+  try {
+    const parts=await V6Brain.data('parts',DB.projectId); DB.parts=parts.data||[];
+    const boq=await V6Brain.data('boq',DB.projectId); DB.boq=boq.data||[];
+    const suppliers=await V6Brain.data('suppliers',DB.projectId); DB.suppliers=suppliers.data||[];
+    const ops=await V6Brain.data('mpp_operations',DB.projectId); DB.ops=ops.data||[];
+    const files=await V6Brain.data('files',DB.projectId); DB.files=files.data||[];
+    renderParts(); renderBoq(); renderOps(); renderSuppliers(); renderFiles(); calc();
+    $('uploadStatus').innerHTML='✅ Data refreshed from database.';
+  } catch(e){ alert('Refresh error: '+e.message); }
+}
+
+// -------- Drawing Upload – Auto‑generate BOQ & MPP (fixed) --------
 async function uploadDrawingAndGenerate(){
   if(!sb) return alert('Connect Supabase first.');
   if(!DB.projectId) return alert('Please save or open a project first.');
@@ -240,9 +251,6 @@ async function uploadDrawingAndGenerate(){
   const {data:uploadData, error:uploadErr} = await sb.storage.from('engineering-files').upload(path, file, {upsert:false});
   if(uploadErr) return alert('Upload error: '+uploadErr.message);
   
-  const {data:urlData} = sb.storage.from('engineering-files').getPublicUrl(path);
-  const fileUrl = urlData.publicUrl;
-  
   // 2. Create metadata
   const metadata = {
     sheetNo: sheetNo,
@@ -271,8 +279,8 @@ async function uploadDrawingAndGenerate(){
   });
   if(insertFileErr) return alert('File record error: '+insertFileErr.message);
   
-  // 4. UPSERT PART – check if exists, update or insert
-  const partData = {
+  // 4. UPSERT PART – try with extended columns, fallback to basic if error
+  const partDataBase = {
     project_id: DB.projectId,
     part_no: partNo,
     description: partName,
@@ -283,11 +291,15 @@ async function uploadDrawingAndGenerate(){
     process: 'Fabrication',
     material_price_usd_kg: 0,
     manual_material_cost: 0,
-    material_type: 'Steel',
-    material_profile: 'Plate',
-    blank_size: overall || '',
     drawing_no: drawingNo,
     geometry: { type: inferDrawingType({description: partName, specification: overall}) }
+  };
+  
+  // Try extended version
+  let partData = {...partDataBase, 
+    material_type: 'Steel',
+    material_profile: 'Plate',
+    blank_size: overall || ''
   };
   
   // Check existing part
@@ -299,21 +311,25 @@ async function uploadDrawingAndGenerate(){
   
   let partErr = null;
   if(existingPart){
-    // Update existing
-    const {error:updateErr} = await sb.from('parts')
-      .update(partData)
-      .eq('id', existingPart.id);
-    partErr = updateErr;
+    const {error:updateErr} = await sb.from('parts').update(partData).eq('id', existingPart.id);
+    if(updateErr){
+      // If extended columns fail, retry with basic
+      console.warn('Part update with extended columns failed, retrying basic:', updateErr);
+      const {error:retryErr} = await sb.from('parts').update(partDataBase).eq('id', existingPart.id);
+      partErr = retryErr;
+    }
   } else {
-    // Insert new
-    const {error:insertErr} = await sb.from('parts')
-      .insert(partData);
-    partErr = insertErr;
+    const {error:insertErr} = await sb.from('parts').insert(partData);
+    if(insertErr){
+      console.warn('Part insert with extended columns failed, retrying basic:', insertErr);
+      const {error:retryErr} = await sb.from('parts').insert(partDataBase);
+      partErr = retryErr;
+    }
   }
   if(partErr) return alert('Part upsert error: '+partErr.message);
   
-  // 5. Upsert BOQ row – check if exists for this part
-  const boqData = {
+  // 5. Upsert BOQ row – same fallback
+  const boqBase = {
     project_id: DB.projectId,
     revision_id: DB.revisionId || null,
     item_no: partNo,
@@ -321,11 +337,13 @@ async function uploadDrawingAndGenerate(){
     qty: qty,
     material: material,
     specification: overall || '',
-    material_type: 'Steel',
-    material_profile: 'Plate',
-    blank_size: overall || '',
     drawing_no: drawingNo,
     weight: weight
+  };
+  const boqExtended = {...boqBase, 
+    material_type: 'Steel',
+    material_profile: 'Plate',
+    blank_size: overall || ''
   };
   
   const {data:existingBoq} = await sb.from('boq_items')
@@ -334,19 +352,25 @@ async function uploadDrawingAndGenerate(){
     .eq('item_no', partNo)
     .maybeSingle();
   
+  let boqErr = null;
   if(existingBoq){
-    const {error:updateBoqErr} = await sb.from('boq_items')
-      .update(boqData)
-      .eq('id', existingBoq.id);
-    if(updateBoqErr) console.warn('BOQ update error:', updateBoqErr);
+    const {error:updateErr} = await sb.from('boq_items').update(boqExtended).eq('id', existingBoq.id);
+    if(updateErr){
+      console.warn('BOQ update extended failed, retrying basic:', updateErr);
+      const {error:retryErr} = await sb.from('boq_items').update(boqBase).eq('id', existingBoq.id);
+      boqErr = retryErr;
+    }
   } else {
-    const {error:insertBoqErr} = await sb.from('boq_items')
-      .insert(boqData);
-    if(insertBoqErr) console.warn('BOQ insert error:', insertBoqErr);
+    const {error:insertErr} = await sb.from('boq_items').insert(boqExtended);
+    if(insertErr){
+      console.warn('BOQ insert extended failed, retrying basic:', insertErr);
+      const {error:retryErr} = await sb.from('boq_items').insert(boqBase);
+      boqErr = retryErr;
+    }
   }
+  if(boqErr) console.warn('BOQ upsert error (non‑fatal):', boqErr);
   
-  // 6. Upsert MPP operations – we'll delete existing ops for this part and recreate
-  // (simpler than trying to diff)
+  // 6. Regenerate MPP ops – delete old ones and insert new
   const {error:deleteOpsErr} = await sb.from('mpp_operations')
     .delete()
     .eq('project_id', DB.projectId)
@@ -361,14 +385,13 @@ async function uploadDrawingAndGenerate(){
     if(opErr) console.warn('MPP op insert error:', opErr);
   }
   
-  // 7. Refresh local DB
-  await loadFilesForProject();
-  await refreshLocalData();
+  // 7. Refresh local data
+  await refreshAllData();
   
   $('uploadStatus').innerHTML = '✅ Drawing uploaded – Part, BOQ, and MPP generated/updated successfully!';
   alert('✅ Drawing uploaded!\nPart: '+partNo+'\nBOQ row updated/created\nMPP operations updated');
   
-  // Clear form (except part no and name – keep them for convenience)
+  // Clear form
   $('uploadMaterial').value = '';
   $('uploadQty').value = '1';
   $('uploadWeight').value = '';
@@ -379,8 +402,6 @@ async function uploadDrawingAndGenerate(){
   $('uploadSheetSize').value = '';
   $('drawingNo').value = '';
   $('uploadFile').value = '';
-  
-  renderParts(); renderBoq(); renderOps(); calc();
 }
 
 function inferDrawingType(p){
@@ -396,7 +417,6 @@ function generateMppOperations(partNo, partName, qty){
   const operations = [];
   const name = norm(partName);
   
-  // Always add Cutting
   operations.push({
     part_no: partNo,
     operation: 'Cutting',
@@ -409,7 +429,6 @@ function generateMppOperations(partNo, partName, qty){
     process_rate: 0
   });
   
-  // Add Drilling if part has holes (check for "plate", "sheet")
   if(name.includes('plate') || name.includes('sheet')){
     operations.push({
       part_no: partNo,
@@ -424,7 +443,6 @@ function generateMppOperations(partNo, partName, qty){
     });
   }
   
-  // Add Bending for sheet parts
   if(name.includes('sheet')){
     operations.push({
       part_no: partNo,
@@ -439,7 +457,6 @@ function generateMppOperations(partNo, partName, qty){
     });
   }
   
-  // Add Rolling for cylindrical parts
   if(name.includes('trough') || name.includes('cylinder') || name.includes('pipe')){
     operations.push({
       part_no: partNo,
@@ -454,7 +471,6 @@ function generateMppOperations(partNo, partName, qty){
     });
   }
   
-  // Add Welding if needed
   if(name.includes('support') || name.includes('frame') || name.includes('assembly')){
     operations.push({
       part_no: partNo,
@@ -470,17 +486,6 @@ function generateMppOperations(partNo, partName, qty){
   }
   
   return operations;
-}
-
-async function refreshLocalData(){
-  if(!DB.projectId) return;
-  try {
-    const parts=await V6Brain.data('parts',DB.projectId); DB.parts=parts.data||[];
-    const boq=await V6Brain.data('boq',DB.projectId); DB.boq=boq.data||[];
-    const suppliers=await V6Brain.data('suppliers',DB.projectId); DB.suppliers=suppliers.data||[];
-    const ops=await V6Brain.data('mpp_operations',DB.projectId); DB.ops=ops.data||[];
-    const files=await V6Brain.data('files',DB.projectId); DB.files=files.data||[];
-  } catch(e){ console.warn('Refresh error:',e); }
 }
 
 // -------- Drawing viewer --------
@@ -549,13 +554,13 @@ function renderParts(){
   const q=norm($('partQ')?.value||''), f=$('partF')?.value||'';
   let a=DB.parts.filter(p=>(!q||norm([p.part_no,p.description,p.material,p.specification].join(' ')).includes(q))&&(!f||(f==='yes'?p.match_score>=60:p.match_score<60)));
   let h='<table><tr><th>Part</th><th>Drawing</th><th>Description</th><th>Qty</th><th>Material</th><th>Mat.Type</th><th>Mat.Profile</th><th>Blank Size</th><th>Drawing No.</th><th>Spec</th><th>Weight kg</th><th>Match</th><th>Alibaba</th><th>USD/kg</th><th>Manual mat. ETB</th></tr>';
-  a.forEach(p=>{const i=DB.parts.indexOf(p); h+=`<tr><td><input value="${escapeHtml(p.part_no)}" onchange="updPart(${i},'part_no',this.value)"></td><td class="drawing-cell">${drawingButton(p)}</td><td><input value="${escapeHtml(p.description||'')}" onchange="updPart(${i},'description',this.value)"></td><td><input type="number" value="${p.qty}" onchange="updPart(${i},'qty',this.value)"></td><td><input value="${escapeHtml(p.material||'')}" onchange="updPart(${i},'material',this.value)"></td><td><input value="${escapeHtml(p.materialType||'')}" onchange="updPart(${i},'materialType',this.value)"></td><td><input value="${escapeHtml(p.materialProfile||'')}" onchange="updPart(${i},'materialProfile',this.value)"></td><td><input value="${escapeHtml(p.blankSize||'')}" onchange="updPart(${i},'blankSize',this.value)"></td><td><input value="${escapeHtml(p.drawingNo||'')}" onchange="updPart(${i},'drawingNo',this.value)"></td><td><input value="${escapeHtml(p.specification||'')}" onchange="updPart(${i},'specification',this.value)"></td><td><input type="number" value="${p.weight_kg||0}" onchange="updPart(${i},'weight_kg',this.value)"></td><td><span class="badge ${p.match_score>=60?'ok':'warn'}">${p.match_score||0}%</span></td><td><button class="btn sm" onclick="searchAlibaba(${i})">Search</button></td><td><input type="number" step=".001" value="${p.material_price_usd_kg||0}" onchange="updPart(${i},'material_price_usd_kg',this.value)"></td><td><input type="number" value="${p.manual_material_cost||0}" onchange="updPart(${i},'manual_material_cost',this.value)"></td></tr>`;});
+  a.forEach(p=>{const i=DB.parts.indexOf(p); h+=`<tr><td><input value="${escapeHtml(p.part_no)}" onchange="updPart(${i},'part_no',this.value)"></td><td class="drawing-cell">${drawingButton(p)}</td><td><input value="${escapeHtml(p.description||'')}" onchange="updPart(${i},'description',this.value)"></td><td><input type="number" value="${p.qty}" onchange="updPart(${i},'qty',this.value)"></td><td><input value="${escapeHtml(p.material||'')}" onchange="updPart(${i},'material',this.value)"></td><td><input value="${escapeHtml(p.material_type||'')}" onchange="updPart(${i},'material_type',this.value)"></td><td><input value="${escapeHtml(p.material_profile||'')}" onchange="updPart(${i},'material_profile',this.value)"></td><td><input value="${escapeHtml(p.blank_size||'')}" onchange="updPart(${i},'blank_size',this.value)"></td><td><input value="${escapeHtml(p.drawing_no||'')}" onchange="updPart(${i},'drawing_no',this.value)"></td><td><input value="${escapeHtml(p.specification||'')}" onchange="updPart(${i},'specification',this.value)"></td><td><input type="number" value="${p.weight_kg||0}" onchange="updPart(${i},'weight_kg',this.value)"></td><td><span class="badge ${p.match_score>=60?'ok':'warn'}">${p.match_score||0}%</span></td><td><button class="btn sm" onclick="searchAlibaba(${i})">Search</button></td><td><input type="number" step=".001" value="${p.material_price_usd_kg||0}" onchange="updPart(${i},'material_price_usd_kg',this.value)"></td><td><input type="number" value="${p.manual_material_cost||0}" onchange="updPart(${i},'manual_material_cost',this.value)"></td></tr>`;});
   $('partsTable').innerHTML=h+'</table>';
 }
 function updPart(i,k,v){DB.parts[i][k]=['qty','weight_kg','material_price_usd_kg','manual_material_cost'].includes(k)?Number(v)||0:v; calc();}
 function searchAlibaba(i){const p=DB.parts[i],q=encodeURIComponent([p.material,p.specification,p.description].filter(Boolean).join(' ')); window.open('https://www.alibaba.com/trade/search?SearchText='+q,'_blank');}
 function addPart(){
-  DB.parts.push({part_no:'P-'+String(DB.parts.length+1).padStart(4,'0'), description:'', qty:1, material:'', specification:'', weight_kg:0, process:'', match_score:0, material_price_usd_kg:0, manual_material_cost:0, materialType:'', materialProfile:'', blankSize:'', drawingNo:'', dims:{}});
+  DB.parts.push({part_no:'P-'+String(DB.parts.length+1).padStart(4,'0'), description:'', qty:1, material:'', specification:'', weight_kg:0, process:'', match_score:0, material_price_usd_kg:0, manual_material_cost:0, material_type:'', material_profile:'', blank_size:'', drawing_no:'', dims:{}});
   renderParts();
 }
 
@@ -567,10 +572,10 @@ function renderBoq(){
         <td><input value="${row.description||''}" onchange="updBoq(${i},'description',this.value)"></td>
         <td><input type="number" value="${row.qty||1}" onchange="updBoq(${i},'qty',this.value)"></td>
         <td><input value="${row.material||''}" onchange="updBoq(${i},'material',this.value)"></td>
-        <td><input value="${row.materialType||''}" onchange="updBoq(${i},'materialType',this.value)"></td>
-        <td><input value="${row.materialProfile||''}" onchange="updBoq(${i},'materialProfile',this.value)"></td>
-        <td><input value="${row.blankSize||''}" onchange="updBoq(${i},'blankSize',this.value)"></td>
-        <td><input value="${row.drawingNo||''}" onchange="updBoq(${i},'drawingNo',this.value)"></td>
+        <td><input value="${row.material_type||''}" onchange="updBoq(${i},'material_type',this.value)"></td>
+        <td><input value="${row.material_profile||''}" onchange="updBoq(${i},'material_profile',this.value)"></td>
+        <td><input value="${row.blank_size||''}" onchange="updBoq(${i},'blank_size',this.value)"></td>
+        <td><input value="${row.drawing_no||''}" onchange="updBoq(${i},'drawing_no',this.value)"></td>
         <td><input type="number" value="${row.weight||0}" onchange="updBoq(${i},'weight',this.value)"></td>
         <td><button class="btn sm red" onclick="deleteBoq(${i})">Delete</button></td></tr>`;
   });
@@ -578,7 +583,7 @@ function renderBoq(){
 }
 function updBoq(i,k,v){DB.boq[i][k]=['qty','weight'].includes(k)?Number(v)||0:v; calc();}
 function deleteBoq(i){DB.boq.splice(i,1); renderBoq();}
-function addBoqRow(){DB.boq.push({item_no:'', description:'', qty:1, material:'', materialType:'', materialProfile:'', blankSize:'', drawingNo:'', weight:0}); renderBoq();}
+function addBoqRow(){DB.boq.push({item_no:'', description:'', qty:1, material:'', material_type:'', material_profile:'', blank_size:'', drawing_no:'', weight:0}); renderBoq();}
 
 // -------- Materials --------
 function renderMaterials(){
