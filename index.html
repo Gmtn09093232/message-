@@ -11,7 +11,6 @@
 <!-- Tesseract.js for OCR -->
 <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 <style>
-/* -------- same as before, with minor additions for progress -------- */
 :root{--nav:#0b1d33;--nav2:#112a47;--blue:#1683f5;--blue2:#0d6efd;--bg:#f3f6fa;--card:#fff;--line:#e2e8f0;--muted:#667085;--good:#16a36a;--warn:#f59e0b;--bad:#ef4444;--purple:#7357e8;--shadow:0 3px 14px rgba(15,35,60,.07)}
 *{box-sizing:border-box}body{margin:0;background:var(--bg);font:14px Inter,Arial,sans-serif;color:#172033}
 header{height:64px;background:linear-gradient(90deg,#0b1d33,#12355a);color:#fff;padding:10px 24px 10px 24px;position:fixed;left:0;right:0;top:0;z-index:50;display:flex;align-items:center;gap:20px;box-shadow:0 2px 12px rgba(0,0,0,.15)}
@@ -25,7 +24,6 @@ label{display:block;font-weight:700;font-size:12px;color:#56657a;margin:8px 0 5p
 @media(max-width:1200px){.dashboard-grid{grid-template-columns:1fr 1fr}.quick{grid-template-columns:repeat(4,1fr)}}@media(max-width:900px){header{padding-left:10px}.brand{width:auto}.brand small{display:none}.topsearch{display:none}nav#nav{width:64px;padding:10px 7px}nav button{font-size:0;text-align:center;padding:12px 5px}nav button:before{margin:0;width:auto;font-size:17px}main{padding-left:80px}.g2,.g3,.g4,.dashboard-grid{grid-template-columns:1fr}.projecthero{grid-template-columns:1fr}.projectphoto{width:100%;height:160px}.hero-meta{grid-template-columns:repeat(2,1fr)}}
 @media print{header,nav,.no-print{display:none!important}.page{display:block!important}main{padding:0}.card{box-shadow:none}}
 .drawing-thumb{width:92px;height:68px;border:1px solid #d8e1ec;border-radius:8px;background:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer;overflow:hidden}.drawing-thumb svg{width:100%;height:100%}.drawing-cell{min-width:118px}.drawing-meta{font-size:10px;color:#64748b;text-align:center;margin-top:3px}.drawing-modal{position:fixed;inset:0;background:rgba(6,20,38,.72);z-index:9999;display:none;align-items:center;justify-content:center;padding:24px}.drawing-modal.show{display:flex}.drawing-panel{background:#fff;border-radius:16px;width:min(900px,96vw);max-height:92vh;overflow:auto;box-shadow:0 24px 70px rgba(0,0,0,.3)}.drawing-panel-head{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid #e5e7eb}.drawing-canvas{padding:20px;background:#f5f7fa}.drawing-canvas iframe{width:100%;height:55vh;border:1px solid #cbd5e1;background:#fff}.drawing-canvas svg{display:block;width:100%;height:auto;max-height:55vh;background:#fff;border:1px solid #cbd5e1}.drawing-info{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;padding:16px 20px}.drawing-info div{background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:9px}.drawing-info small{display:block;color:#64748b}.drawing-info b{font-size:13px}.drawing-actions{display:flex;gap:10px;padding:12px 20px;border-top:1px solid #e2e8f0;background:#fafbfc}@media(max-width:700px){.drawing-info{grid-template-columns:repeat(2,1fr)}}
-/* progress bar */
 .progress-bar{border:1px solid #cbd5e1;border-radius:20px;height:20px;background:#e9eef6;margin:12px 0;overflow:hidden}.progress-bar .fill{height:100%;width:0%;background:linear-gradient(90deg,#1683f5,#0d6efd);border-radius:20px;transition:width 0.3s}
 </style>
 </head>
@@ -370,7 +368,7 @@ async function uploadDrawingAndGenerate(){
     
     // Now create records for each extracted part
     for (const meta of extractedParts) {
-      const partNo = generatePartNumber();
+      const partNo = await generatePartNumber();
       
       // Build metadata for storage
       const fileMetadata = {
@@ -390,10 +388,7 @@ async function uploadDrawingAndGenerate(){
       };
       
       // Upload file (if PDF, we upload the whole file once, but we'll store the same file for each part)
-      // To avoid duplication, we could upload once per file, but for simplicity we upload each time with a unique path.
-      // This will create duplicates in storage. Better: upload once and reference same path.
-      // We'll check if file already uploaded by name and size.
-      // Simpler: upload once per file and reuse path.
+      // To avoid duplication, we upload once per file and reuse path.
       let storagePath = null;
       // Try to find existing file in DB.files with same name and size
       const existingFile = DB.files.find(f => f.file_name === file.name && f.file_size === file.size);
@@ -494,7 +489,7 @@ async function uploadDrawingAndGenerate(){
 }
 
 // -------- Generate unique part number --------
-function generatePartNumber(){
+async function generatePartNumber(){
   const {data:existingParts} = await sb.from('parts').select('part_no').eq('project_id', DB.projectId);
   const usedNumbers = new Set(existingParts.map(p => p.part_no));
   let nextNum = existingParts.reduce((max, p) => {
