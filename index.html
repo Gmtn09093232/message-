@@ -1,1225 +1,483 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>SecureChat</title>
-    <style>
-        /* ----- RESET & VARIABLES ----- */
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-        }
-        :root {
-            --bg: #0d1117;
-            --bg-secondary: #161b22;
-            --bg-hover: #1c2333;
-            --text: #e6edf3;
-            --text-muted: #8b949e;
-            --border: #30363d;
-            --accent: #58a6ff;
-            --accent-hover: #79c0ff;
-            --danger: #f85149;
-            --success: #3fb950;
-            --shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
-            --radius: 12px;
-            --radius-sm: 6px;
-            --transition: 0.2s ease;
-        }
-
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-            background: var(--bg);
-            color: var(--text);
-            height: 100vh;
-            margin: 0;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        /* ----- AUTH SCREEN ----- */
-        #auth-screen {
-            background: var(--bg-secondary);
-            padding: 40px 32px;
-            border-radius: var(--radius);
-            box-shadow: var(--shadow);
-            max-width: 420px;
-            width: 100%;
-            border: 1px solid var(--border);
-        }
-        #auth-screen .logo {
-            text-align: center;
-            margin-bottom: 28px;
-        }
-        #auth-screen .logo h2 {
-            font-weight: 700;
-            font-size: 26px;
-        }
-        #auth-screen .logo h2 span {
-            color: var(--accent);
-        }
-        #auth-screen .logo p {
-            color: var(--text-muted);
-            font-size: 14px;
-            margin-top: 4px;
-        }
-
-        #auth-screen input {
-            width: 100%;
-            padding: 12px 14px;
-            margin-bottom: 14px;
-            background: var(--bg);
-            border: 1px solid var(--border);
-            border-radius: var(--radius-sm);
-            color: var(--text);
-            font-size: 15px;
-            outline: none;
-            transition: border var(--transition);
-        }
-        #auth-screen input:focus {
-            border-color: var(--accent);
-        }
-
-        #auth-screen button {
-            width: 100%;
-            padding: 12px;
-            background: var(--accent);
-            border: none;
-            border-radius: var(--radius-sm);
-            color: #0d1117;
-            font-weight: 600;
-            font-size: 16px;
-            cursor: pointer;
-            transition: background var(--transition);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-            margin-top: 4px;
-        }
-        #auth-screen button:hover {
-            background: var(--accent-hover);
-        }
-        #auth-screen button:disabled {
-            opacity: 0.6;
-            cursor: not-allowed;
-        }
-
-        .auth-error {
-            background: rgba(248, 81, 73, 0.12);
-            color: var(--danger);
-            padding: 10px 14px;
-            border-radius: var(--radius-sm);
-            margin-bottom: 16px;
-            display: none;
-            font-size: 14px;
-            border: 1px solid rgba(248, 81, 73, 0.2);
-        }
-        .auth-error.show {
-            display: block;
-        }
-        .auth-success {
-            background: rgba(63, 185, 80, 0.12);
-            color: var(--success);
-            padding: 10px 14px;
-            border-radius: var(--radius-sm);
-            margin-bottom: 16px;
-            display: none;
-            font-size: 14px;
-            border: 1px solid rgba(63, 185, 80, 0.2);
-        }
-        .auth-success.show {
-            display: block;
-        }
-
-        .auth-switch {
-            text-align: center;
-            margin-top: 18px;
-            font-size: 14px;
-            color: var(--text-muted);
-        }
-        .auth-switch a {
-            color: var(--accent);
-            cursor: pointer;
-            text-decoration: none;
-            font-weight: 500;
-        }
-        .auth-switch a:hover {
-            text-decoration: underline;
-        }
-
-        .spinner {
-            width: 20px;
-            height: 20px;
-            border: 3px solid rgba(13, 17, 23, 0.2);
-            border-radius: 50%;
-            border-top-color: #0d1117;
-            animation: spin 0.7s linear infinite;
-            display: inline-block;
-        }
-        @keyframes spin {
-            to {
-                transform: rotate(360deg);
-            }
-        }
-
-        /* ----- MAIN APP (same as before) ----- */
-        #app {
-            display: none;
-            width: 100vw;
-            height: 100vh;
-            background: var(--bg);
-        }
-        #app.active {
-            display: flex;
-        }
-
-        .sidebar {
-            width: 280px;
-            background: var(--bg-secondary);
-            border-right: 1px solid var(--border);
-            display: flex;
-            flex-direction: column;
-            flex-shrink: 0;
-            height: 100vh;
-            overflow: hidden;
-        }
-        .sidebar-header {
-            padding: 16px 20px;
-            border-bottom: 1px solid var(--border);
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            flex-shrink: 0;
-        }
-        .user-chip {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            cursor: pointer;
-            padding: 4px 12px 4px 4px;
-            border-radius: 30px;
-            transition: background var(--transition);
-        }
-        .user-chip:hover {
-            background: var(--bg-hover);
-        }
-        .user-chip .avatar {
-            width: 32px;
-            height: 32px;
-            border-radius: 50%;
-            background: var(--accent);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: 600;
-            font-size: 14px;
-            color: #0d1117;
-            overflow: hidden;
-            flex-shrink: 0;
-        }
-        .user-chip .avatar img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-        }
-        .user-chip .name {
-            font-weight: 500;
-            font-size: 14px;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-        .logout-btn {
-            background: none;
-            border: none;
-            color: var(--text-muted);
-            cursor: pointer;
-            font-size: 18px;
-            padding: 4px 8px;
-            border-radius: 6px;
-            transition: background var(--transition), color var(--transition);
-        }
-        .logout-btn:hover {
-            background: rgba(248, 81, 73, 0.15);
-            color: var(--danger);
-        }
-
-        .search-box {
-            padding: 12px 16px;
-            border-bottom: 1px solid var(--border);
-            flex-shrink: 0;
-        }
-        .search-box input {
-            width: 100%;
-            padding: 8px 12px;
-            background: var(--bg);
-            border: 1px solid var(--border);
-            border-radius: 20px;
-            color: var(--text);
-            font-size: 14px;
-            outline: none;
-        }
-        .search-box input:focus {
-            border-color: var(--accent);
-        }
-
-        .users-list {
-            flex: 1;
-            overflow-y: auto;
-            padding: 8px 0;
-        }
-        .user-item {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            padding: 10px 16px;
-            cursor: pointer;
-            transition: background var(--transition);
-            border-left: 3px solid transparent;
-        }
-        .user-item:hover {
-            background: var(--bg-hover);
-        }
-        .user-item.active {
-            background: var(--bg-hover);
-            border-left-color: var(--accent);
-        }
-        .user-item .avatar-placeholder,
-        .user-item img {
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            flex-shrink: 0;
-        }
-        .user-item .avatar-placeholder {
-            background: var(--border);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: 600;
-            font-size: 16px;
-            color: var(--text);
-        }
-        .user-item .info {
-            flex: 1;
-            min-width: 0;
-        }
-        .user-item .info .name {
-            font-weight: 500;
-            font-size: 15px;
-        }
-        .user-item .info .username {
-            font-size: 13px;
-            color: var(--text-muted);
-            margin-top: 2px;
-        }
-
-        .chat-area {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            height: 100vh;
-            background: var(--bg);
-        }
-        .chat-empty {
-            flex: 1;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: var(--text-muted);
-            font-size: 18px;
-        }
-        .chat-active {
-            display: none;
-            flex-direction: column;
-            height: 100%;
-        }
-
-        .chat-header {
-            padding: 16px 24px;
-            border-bottom: 1px solid var(--border);
-            display: flex;
-            align-items: center;
-            gap: 14px;
-            flex-shrink: 0;
-        }
-        .chat-header .avatar {
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            background: var(--border);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: 600;
-            font-size: 16px;
-            color: var(--text);
-            overflow: hidden;
-            flex-shrink: 0;
-        }
-        .chat-header .avatar img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-        }
-        .chat-header .info {
-            flex: 1;
-        }
-        .chat-header .info .name {
-            font-weight: 600;
-            font-size: 16px;
-        }
-        .chat-header .info .username {
-            font-size: 13px;
-            color: var(--text-muted);
-        }
-
-        .messages-container {
-            flex: 1;
-            overflow-y: auto;
-            padding: 20px 24px;
-            display: flex;
-            flex-direction: column;
-            gap: 6px;
-        }
-        .message {
-            max-width: 70%;
-            padding: 10px 14px;
-            border-radius: 18px;
-            word-wrap: break-word;
-            font-size: 15px;
-            line-height: 1.4;
-            position: relative;
-        }
-        .message.sent {
-            align-self: flex-end;
-            background: var(--accent);
-            color: #0d1117;
-            border-bottom-right-radius: 4px;
-        }
-        .message.received {
-            align-self: flex-start;
-            background: var(--bg-secondary);
-            border: 1px solid var(--border);
-            border-bottom-left-radius: 4px;
-        }
-        .message .time {
-            font-size: 11px;
-            opacity: 0.7;
-            margin-top: 4px;
-            text-align: right;
-        }
-        .message.sent .time {
-            color: rgba(0, 0, 0, 0.6);
-        }
-        .message.received .time {
-            color: var(--text-muted);
-        }
-
-        .chat-footer {
-            padding: 12px 20px;
-            border-top: 1px solid var(--border);
-            display: flex;
-            gap: 12px;
-            align-items: flex-end;
-            flex-shrink: 0;
-            background: var(--bg);
-        }
-        .chat-footer textarea {
-            flex: 1;
-            padding: 10px 14px;
-            background: var(--bg-secondary);
-            border: 1px solid var(--border);
-            border-radius: 20px;
-            color: var(--text);
-            font-size: 15px;
-            resize: none;
-            outline: none;
-            font-family: inherit;
-            min-height: 44px;
-            max-height: 120px;
-            line-height: 1.4;
-        }
-        .chat-footer textarea:focus {
-            border-color: var(--accent);
-        }
-        .chat-footer button {
-            padding: 10px 20px;
-            background: var(--accent);
-            border: none;
-            border-radius: 20px;
-            color: #0d1117;
-            font-weight: 600;
-            font-size: 15px;
-            cursor: pointer;
-            transition: background var(--transition);
-            height: 44px;
-            flex-shrink: 0;
-        }
-        .chat-footer button:hover {
-            background: var(--accent-hover);
-        }
-        .chat-footer button:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-        }
-
-        /* ----- PROFILE MODAL ----- */
-        .modal-overlay {
-            display: none;
-            position: fixed;
-            inset: 0;
-            background: rgba(0, 0, 0, 0.6);
-            backdrop-filter: blur(4px);
-            align-items: center;
-            justify-content: center;
-            z-index: 1000;
-        }
-        .modal-overlay.active {
-            display: flex;
-        }
-        .modal {
-            background: var(--bg-secondary);
-            border: 1px solid var(--border);
-            border-radius: var(--radius);
-            box-shadow: var(--shadow);
-            padding: 32px;
-            max-width: 460px;
-            width: 100%;
-            margin: 20px;
-        }
-        .modal h2 {
-            margin-bottom: 20px;
-            font-weight: 600;
-        }
-        .modal label {
-            display: block;
-            font-weight: 500;
-            margin-bottom: 4px;
-            font-size: 14px;
-            color: var(--text-muted);
-        }
-        .modal input[type="text"],
-        .modal input[type="tel"] {
-            width: 100%;
-            padding: 10px 12px;
-            background: var(--bg);
-            border: 1px solid var(--border);
-            border-radius: var(--radius-sm);
-            color: var(--text);
-            font-size: 15px;
-            margin-bottom: 16px;
-            outline: none;
-        }
-        .modal input:focus {
-            border-color: var(--accent);
-        }
-
-        .avatar-upload {
-            display: flex;
-            align-items: center;
-            gap: 16px;
-            margin-bottom: 16px;
-        }
-        .avatar-upload .preview {
-            width: 64px;
-            height: 64px;
-            border-radius: 50%;
-            background: var(--border);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 24px;
-            font-weight: 600;
-            overflow: hidden;
-            flex-shrink: 0;
-        }
-        .avatar-upload .preview img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-        }
-        .avatar-upload .upload-btn {
-            background: var(--bg-hover);
-            padding: 6px 14px;
-            border-radius: var(--radius-sm);
-            cursor: pointer;
-            font-size: 14px;
-            border: 1px solid var(--border);
-            transition: background var(--transition);
-        }
-        .avatar-upload .upload-btn:hover {
-            background: var(--border);
-        }
-        .avatar-upload input[type="file"] {
-            display: none;
-        }
-
-        .modal-actions {
-            display: flex;
-            justify-content: flex-end;
-            gap: 12px;
-            margin-top: 8px;
-        }
-        .modal-actions button {
-            padding: 8px 20px;
-            border: none;
-            border-radius: var(--radius-sm);
-            font-weight: 500;
-            cursor: pointer;
-            font-size: 15px;
-            transition: background var(--transition);
-        }
-        .modal-actions .cancel {
-            background: transparent;
-            color: var(--text-muted);
-            border: 1px solid var(--border);
-        }
-        .modal-actions .cancel:hover {
-            background: var(--bg-hover);
-        }
-        .modal-actions .save {
-            background: var(--accent);
-            color: #0d1117;
-        }
-        .modal-actions .save:hover {
-            background: var(--accent-hover);
-        }
-
-        /* ----- SCROLLBAR ----- */
-        ::-webkit-scrollbar {
-            width: 6px;
-        }
-        ::-webkit-scrollbar-track {
-            background: transparent;
-        }
-        ::-webkit-scrollbar-thumb {
-            background: var(--border);
-            border-radius: 10px;
-        }
-        ::-webkit-scrollbar-thumb:hover {
-            background: var(--text-muted);
-        }
-
-        /* ----- RESPONSIVE ----- */
-        @media (max-width: 720px) {
-            .sidebar {
-                width: 240px;
-            }
-            .chat-header {
-                padding: 12px 16px;
-            }
-            .messages-container {
-                padding: 12px 16px;
-            }
-            .chat-footer {
-                padding: 8px 12px;
-            }
-            .modal {
-                padding: 24px 20px;
-                margin: 12px;
-            }
-            #auth-screen {
-                padding: 28px 20px;
-                margin: 16px;
-            }
-        }
-        @media (max-width: 600px) {
-            #app.active {
-                flex-direction: column;
-            }
-            .sidebar {
-                width: 100%;
-                height: auto;
-                max-height: 200px;
-                border-right: none;
-                border-bottom: 1px solid var(--border);
-            }
-            .chat-area {
-                height: calc(100vh - 200px);
-            }
-        }
-    </style>
-</head>
-
-<body>
-
-    <!-- ========== AUTH SCREEN ========== -->
-    <div id="auth-screen">
-        <div class="logo">
-            <h2>🔒 <span>SecureChat</span></h2>
-            <p>End-to-end encrypted messaging</p>
-        </div>
-
-        <div id="auth-error" class="auth-error"></div>
-        <div id="auth-success" class="auth-success"></div>
-
-        <!-- Login Form -->
-        <form id="login-form">
-            <input id="login-username" type="text" placeholder="Username" required autocomplete="username" />
-            <input id="login-password" type="password" placeholder="Password" required autocomplete="current-password" />
-            <button id="login-btn" type="submit">Sign In</button>
-        </form>
-
-        <!-- Signup Form -->
-        <form id="signup-form" style="display:none;">
-            <input id="signup-username" type="text" placeholder="Username" required autocomplete="off" />
-            <input id="signup-fullname" type="text" placeholder="Full Name" />
-            <input id="signup-phone" type="tel" placeholder="Phone (optional)" />
-            <input id="signup-password" type="password" placeholder="Password" required autocomplete="new-password" />
-            <button id="signup-btn" type="submit">Create Account</button>
-        </form>
-
-        <div class="auth-switch">
-            <span id="auth-switch-text">Don't have an account?</span>
-            <a href="#" id="auth-switch-link">Sign up</a>
-        </div>
-    </div>
-
-    <!-- ========== MAIN APP ========== -->
-    <div id="app">
-        <!-- Sidebar -->
-        <aside class="sidebar">
-            <div class="sidebar-header">
-                <div id="current-user-chip" class="user-chip">
-                    <span id="my-avatar" class="avatar">?</span>
-                    <span id="my-username" class="name">Me</span>
-                </div>
-                <button id="logout-btn" class="logout-btn" title="Logout">⏻</button>
-            </div>
-
-            <div class="search-box">
-                <input id="user-search" placeholder="Search users…" />
-            </div>
-
-            <div id="users-list" class="users-list"></div>
-        </aside>
-
-        <!-- Chat Area -->
-        <main class="chat-area">
-            <div id="chat-empty" class="chat-empty">
-                <span>👋 Select a user to start chatting</span>
-            </div>
-
-            <div id="chat-active" class="chat-active">
-                <div class="chat-header">
-                    <span id="receiver-avatar" class="avatar">?</span>
-                    <div class="info">
-                        <div id="receiver-name" class="name">Name</div>
-                        <div id="receiver-username" class="username">@username</div>
-                    </div>
-                </div>
-
-                <div id="messages-container" class="messages-container"></div>
-
-                <div class="chat-footer">
-                    <textarea id="message-input" rows="1" placeholder="Type a message…"></textarea>
-                    <button id="send-btn">Send</button>
-                </div>
-            </div>
-        </main>
-    </div>
-
-    <!-- ========== PROFILE MODAL ========== -->
-    <div id="profile-modal" class="modal-overlay">
-        <div class="modal">
-            <h2>Your Profile</h2>
-
-            <div class="avatar-upload">
-                <div class="preview" id="profile-avatar-preview" style="display:none;"></div>
-                <div class="preview" id="profile-avatar-placeholder">?</div>
-                <label class="upload-btn" for="avatar-input">📷 Upload</label>
-                <input id="avatar-input" type="file" accept="image/*" />
-            </div>
-
-            <label>Username</label>
-            <input id="profile-username" type="text" />
-
-            <label>Full Name</label>
-            <input id="profile-fullname" type="text" />
-
-            <label>Phone</label>
-            <input id="profile-phone" type="tel" />
-
-            <div class="modal-actions">
-                <button id="profile-cancel" class="cancel">Cancel</button>
-                <button id="profile-save" class="save">Save</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- ========== JAVASCRIPT ========== -->
-    <script>
-        // ============================================================
-        //  SECURECHAT – Full Authentication + Chat (Server API)
-        // ============================================================
-
-        const API_BASE = '/api';
-
-        // ---------- DOM REFS ----------
-        const authScreen = document.getElementById('auth-screen');
-        const appEl = document.getElementById('app');
-        const authError = document.getElementById('auth-error');
-        const authSuccess = document.getElementById('auth-success');
-        const loginForm = document.getElementById('login-form');
-        const signupForm = document.getElementById('signup-form');
-        const authSwitchLink = document.getElementById('auth-switch-link');
-        const authSwitchText = document.getElementById('auth-switch-text');
-        const loginBtn = document.getElementById('login-btn');
-        const signupBtn = document.getElementById('signup-btn');
-
-        // ---------- STATE ----------
-        let token = localStorage.getItem('chatToken');
-        let currentUser = null;
-        let selectedUser = null;
-        let users = [];
-        let messages = [];
-
-        // ---------- AUTH SWITCH ----------
-        let isSignup = false;
-        authSwitchLink.addEventListener('click', (e) => {
-            e.preventDefault();
-            isSignup = !isSignup;
-            loginForm.style.display = isSignup ? 'none' : 'block';
-            signupForm.style.display = isSignup ? 'block' : 'none';
-            authSwitchText.textContent = isSignup ? 'Already have an account?' : "Don't have an account?";
-            authSwitchLink.textContent = isSignup ? 'Sign in' : 'Sign up';
-            authError.classList.remove('show');
-            authSuccess.classList.remove('show');
-        });
-
-        // ---------- API HELPERS ----------
-        function apiRequest(endpoint, options = {}) {
-            const headers = {
-                'Content-Type': 'application/json',
-                ...options.headers
-            };
-            if (token) {
-                headers['Authorization'] = `Bearer ${token}`;
-            }
-            return fetch(`${API_BASE}${endpoint}`, {
-                ...options,
-                headers
-            }).then(res => {
-                if (res.status === 401) {
-                    // Unauthorized – clear token and reload
-                    localStorage.removeItem('chatToken');
-                    token = null;
-                    window.location.reload();
-                    return Promise.reject(new Error('Unauthorized'));
-                }
-                return res.json().then(data => {
-                    if (!res.ok) {
-                        throw new Error(data.error || 'Request failed');
-                    }
-                    return data;
-                });
-            });
-        }
-
-        // ---------- AUTH ----------
-        async function register(username, password, fullName, phone) {
-            const data = await apiRequest('/register', {
-                method: 'POST',
-                body: JSON.stringify({ username, password, full_name: fullName, phone })
-            });
-            return data;
-        }
-
-        async function login(username, password) {
-            const data = await apiRequest('/login', {
-                method: 'POST',
-                body: JSON.stringify({ username, password })
-            });
-            token = data.token;
-            localStorage.setItem('chatToken', token);
-            currentUser = data.user;
-            return data;
-        }
-
-        // ---------- APP INIT ----------
-        async function initApp(user) {
-            currentUser = user;
-            authScreen.style.display = 'none';
-            appEl.classList.add('active');
-
-            // Update my chip
-            const avatarEl = document.getElementById('my-avatar');
-            const nameEl = document.getElementById('my-username');
-            nameEl.textContent = user.username;
-            if (user.avatar_url) {
-                avatarEl.innerHTML = `<img src="${user.avatar_url}" alt="Me" />`;
-            } else {
-                avatarEl.textContent = (user.username || '?')[0].toUpperCase();
-                avatarEl.style.background = 'var(--accent)';
-                avatarEl.style.color = '#0d1117';
-            }
-
-            await loadUsers();
-            // Auto-select first user
-            if (users.length > 0) {
-                selectUser(users[0]);
-            }
-        }
-
-        // ---------- USERS ----------
-        async function loadUsers() {
-            const data = await apiRequest('/users');
-            users = data.filter(u => u.id !== currentUser.id);
-            renderUsers(users);
-        }
-
-        function renderUsers(list) {
-            const container = document.getElementById('users-list');
-            container.innerHTML = '';
-            if (!list.length) {
-                container.innerHTML =
-                    `<p style="padding:20px;color:var(--text-muted);font-size:14px;text-align:center">No other users yet</p>`;
-                return;
-            }
-            list.forEach(user => {
-                const el = document.createElement('div');
-                el.className = 'user-item' + (selectedUser?.id === user.id ? ' active' : '');
-                el.dataset.id = user.id;
-
-                const avatar = user.avatar_url ?
-                    `<img src="${user.avatar_url}" alt="${user.username}" />` :
-                    `<div class="avatar-placeholder">${(user.username || '?')[0].toUpperCase()}</div>`;
-
-                el.innerHTML = `
-                    ${avatar}
-                    <div class="info">
-                        <div class="name">${escapeHtml(user.full_name || user.username)}</div>
-                        <div class="username">@${escapeHtml(user.username)}</div>
-                    </div>
-                `;
-                el.addEventListener('click', () => selectUser(user));
-                container.appendChild(el);
-            });
-        }
-
-        document.getElementById('user-search').addEventListener('input', (e) => {
-            const q = e.target.value.toLowerCase().trim();
-            const filtered = users.filter(u =>
-                (u.username || '').toLowerCase().includes(q) ||
-                (u.full_name || '').toLowerCase().includes(q)
-            );
-            renderUsers(filtered);
-        });
-
-        // ---------- SELECT USER ----------
-        async function selectUser(user) {
-            selectedUser = user;
-            document.querySelectorAll('.user-item').forEach(el => {
-                el.classList.toggle('active', el.dataset.id === user.id);
-            });
-
-            document.getElementById('chat-empty').style.display = 'none';
-            const chatActive = document.getElementById('chat-active');
-            chatActive.style.display = 'flex';
-
-            const avatarEl = document.getElementById('receiver-avatar');
-            if (user.avatar_url) {
-                avatarEl.innerHTML = `<img src="${user.avatar_url}" alt="${user.username}" />`;
-            } else {
-                avatarEl.textContent = (user.username || '?')[0].toUpperCase();
-                avatarEl.style.background = 'var(--border)';
-                avatarEl.style.color = 'var(--text)';
-            }
-            document.getElementById('receiver-name').textContent = user.full_name || user.username;
-            document.getElementById('receiver-username').textContent = `@${user.username}`;
-
-            await loadMessages();
-        }
-
-        // ---------- MESSAGES ----------
-        async function loadMessages() {
-            if (!selectedUser) return;
-            const data = await apiRequest(`/messages?userId=${currentUser.id}`);
-            // Filter messages between current user and selected user
-            const relevant = data.filter(m =>
-                (m.sender_id === currentUser.id && m.receiver_id === selectedUser.id) ||
-                (m.sender_id === selectedUser.id && m.receiver_id === currentUser.id)
-            );
-            messages = relevant;
-            renderMessages();
-        }
-
-        function renderMessages() {
-            const container = document.getElementById('messages-container');
-            container.innerHTML = '';
-            messages.forEach(msg => {
-                const isSent = msg.sender_id === currentUser.id;
-                const el = document.createElement('div');
-                el.className = `message ${isSent ? 'sent' : 'received'}`;
-                el.innerHTML = `
-                    <div>${escapeHtml(msg.ciphertext)}</div>
-                    <div class="time">${formatTime(msg.created_at)}</div>
-                `;
-                container.appendChild(el);
-            });
-            container.scrollTop = container.scrollHeight;
-        }
-
-        // ---------- SEND MESSAGE ----------
-        async function sendMessage() {
-            const input = document.getElementById('message-input');
-            const text = input.value.trim();
-            if (!text || !selectedUser) return;
-
-            const btn = document.getElementById('send-btn');
-            btn.disabled = true;
-
-            try {
-                const newMsg = await apiRequest('/messages', {
-                    method: 'POST',
-                    body: JSON.stringify({
-                        sender_id: currentUser.id,
-                        receiver_id: selectedUser.id,
-                        ciphertext: text, // In real app, encrypt here
-                        iv: ''
-                    })
-                });
-                messages.push(newMsg);
-                renderMessages();
-                input.value = '';
-                input.style.height = 'auto';
-            } catch (err) {
-                alert('Failed to send: ' + err.message);
-            } finally {
-                btn.disabled = false;
-            }
-        }
-
-        // ---------- EVENT LISTENERS ----------
-        document.getElementById('send-btn').addEventListener('click', sendMessage);
-        document.getElementById('message-input').addEventListener('keydown', (e) => {
-            if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault();
-                sendMessage();
-            }
-        });
-
-        // Auto-resize
-        document.getElementById('message-input').addEventListener('input', function() {
-            this.style.height = 'auto';
-            this.style.height = Math.min(this.scrollHeight, 120) + 'px';
-        });
-
-        // ---------- LOGIN ----------
-        loginForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const username = document.getElementById('login-username').value.trim();
-            const password = document.getElementById('login-password').value;
-
-            loginBtn.disabled = true;
-            loginBtn.innerHTML = '<div class="spinner"></div>';
-
-            try {
-                const data = await login(username, password);
-                authSuccess.textContent = 'Logged in successfully!';
-                authSuccess.classList.add('show');
-                await initApp(data.user);
-            } catch (err) {
-                authError.textContent = err.message;
-                authError.classList.add('show');
-            } finally {
-                loginBtn.disabled = false;
-                loginBtn.textContent = 'Sign In';
-            }
-        });
-
-        // ---------- SIGNUP ----------
-        signupForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const username = document.getElementById('signup-username').value.trim();
-            const fullName = document.getElementById('signup-fullname').value.trim();
-            const phone = document.getElementById('signup-phone').value.trim();
-            const password = document.getElementById('signup-password').value;
-
-            signupBtn.disabled = true;
-            signupBtn.innerHTML = '<div class="spinner"></div>';
-
-            try {
-                await register(username, password, fullName, phone);
-                authSuccess.textContent = 'Account created! Please sign in.';
-                authSuccess.classList.add('show');
-                // Switch to login
-                isSignup = false;
-                loginForm.style.display = 'block';
-                signupForm.style.display = 'none';
-                authSwitchText.textContent = "Don't have an account?";
-                authSwitchLink.textContent = 'Sign up';
-                document.getElementById('login-username').value = username;
-                document.getElementById('login-password').value = '';
-            } catch (err) {
-                authError.textContent = err.message;
-                authError.classList.add('show');
-            } finally {
-                signupBtn.disabled = false;
-                signupBtn.textContent = 'Create Account';
-            }
-        });
-
-        // ---------- LOGOUT ----------
-        document.getElementById('logout-btn').addEventListener('click', () => {
-            localStorage.removeItem('chatToken');
-            token = null;
-            location.reload();
-        });
-
-        // ---------- PROFILE MODAL ----------
-        const profileModal = document.getElementById('profile-modal');
-        document.getElementById('current-user-chip').addEventListener('click', () => {
-            if (!currentUser) return;
-            document.getElementById('profile-username').value = currentUser.username || '';
-            document.getElementById('profile-fullname').value = currentUser.full_name || '';
-            document.getElementById('profile-phone').value = currentUser.phone || '';
-
-            const preview = document.getElementById('profile-avatar-preview');
-            const placeholder = document.getElementById('profile-avatar-placeholder');
-            if (currentUser.avatar_url) {
-                preview.innerHTML = `<img src="${currentUser.avatar_url}" alt="Avatar" />`;
-                preview.style.display = 'flex';
-                placeholder.style.display = 'none';
-            } else {
-                preview.style.display = 'none';
-                placeholder.style.display = 'flex';
-                placeholder.textContent = (currentUser.username || '?')[0].toUpperCase();
-            }
-
-            profileModal.classList.add('active');
-        });
-
-        document.getElementById('profile-cancel').addEventListener('click', () => {
-            profileModal.classList.remove('active');
-        });
-
-        // Avatar upload (just for demo – stores only in memory)
-        document.getElementById('avatar-input').addEventListener('change', (e) => {
-            const file = e.target.files[0];
-            if (!file) return;
-            const reader = new FileReader();
-            reader.onload = (ev) => {
-                const url = ev.target.result;
-                currentUser.avatar_url = url;
-                const preview = document.getElementById('profile-avatar-preview');
-                preview.innerHTML = `<img src="${url}" alt="Avatar" />`;
-                preview.style.display = 'flex';
-                document.getElementById('profile-avatar-placeholder').style.display = 'none';
-                // Update sidebar
-                document.getElementById('my-avatar').innerHTML = `<img src="${url}" alt="Me" />`;
-            };
-            reader.readAsDataURL(file);
-        });
-
-        document.getElementById('profile-save').addEventListener('click', async () => {
-            const username = document.getElementById('profile-username').value.trim();
-            const fullName = document.getElementById('profile-fullname').value.trim();
-            const phone = document.getElementById('profile-phone').value.trim();
-
-            try {
-                const updated = await apiRequest('/users', {
-                    method: 'PUT',
-                    body: JSON.stringify({
-                        id: currentUser.id,
-                        username,
-                        full_name: fullName,
-                        phone,
-                        avatar_url: currentUser.avatar_url
-                    })
-                });
-                currentUser = updated;
-                document.getElementById('my-username').textContent = username;
-                profileModal.classList.remove('active');
-                await loadUsers();
-            } catch (err) {
-                alert('Update failed: ' + err.message);
-            }
-        });
-
-        // ---------- HELPERS ----------
-        function escapeHtml(text) {
-            const div = document.createElement('div');
-            div.textContent = text;
-            return div.innerHTML;
-        }
-
-        function formatTime(iso) {
-            const d = new Date(iso);
-            return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-        }
-
-        // ---------- AUTO-LOGIN CHECK ----------
-        if (token) {
-            // Verify token by fetching users
-            apiRequest('/users')
-                .then(data => {
-                    // If successful, we have a valid token; we need to get current user info.
-                    // We could store user in token or fetch /me endpoint.
-                    // For simplicity, we'll store user from login response, but we don't have it.
-                    // Let's assume token is valid and we'll get user from a /me endpoint or decode token.
-                    // Better: add /me endpoint. For brevity, we'll just redirect to login if no user.
-                    // We'll add a /me endpoint later? Instead, we can store user in localStorage on login.
-                    // Let's store user in localStorage as well.
-                    const storedUser = localStorage.getItem('chatUser');
-                    if (storedUser) {
-                        const user = JSON.parse(storedUser);
-                        initApp(user);
-                    } else {
-                        // Need to get user info from token; we'll add /me endpoint.
-                        // For now, fallback to login.
-                        localStorage.removeItem('chatToken');
-                        token = null;
-                        location.reload();
-                    }
-                })
-                .catch(() => {
-                    localStorage.removeItem('chatToken');
-                    token = null;
-                    location.reload();
-                });
-        }
-
-        // We'll store user after login
-        // Modify login function to store user
-        const originalLogin = login;
-        login = async function(username, password) {
-            const data = await originalLogin(username, password);
-            localStorage.setItem('chatUser', JSON.stringify(data.user));
-            return data;
-        };
-
-        // Also after signup, we don't auto-login, so no need.
-
-        // If token exists but user not in localStorage, we could try to decode token or fetch /me.
-        // For simplicity, we'll add a /me endpoint in server.js to return user from token.
-        // But we already have the user in the login response. So we store it there.
-        // For initial load, if token exists, we assume user is in localStorage.
-        if (token) {
-            const storedUser = localStorage.getItem('chatUser');
-            if (storedUser) {
-                const user = JSON.parse(storedUser);
-                initApp(user);
-            } else {
-                // Try to fetch /me
-                apiRequest('/me')
-                    .then(user => {
-                        localStorage.setItem('chatUser', JSON.stringify(user));
-                        initApp(user);
-                    })
-                    .catch(() => {
-                        localStorage.removeItem('chatToken');
-                        token = null;
-                        location.reload();
-                    });
-            }
-        }
-
-        // ---------- POLYFILL for older browsers (optional) ----------
-    </script>
-</body>
-</html>
+'use strict';
+
+/**
+ * Engineering Cost Estimator V6 – Complete Backend
+ * Includes: calculation engine, Excel import/export, Supabase integration,
+ * generic CRUD for all tables, workflow summary, procurement comparison, etc.
+ */
+
+const express = require('express');
+const cors = require('cors');
+const multer = require('multer');
+const path = require('path');
+const fs = require('fs');
+const XLSX = require('xlsx');
+
+let createClient = null;
+try { ({ createClient } = require('@supabase/supabase-js')); } catch (_) {}
+
+const PORT = Number(process.env.PORT || 3000);
+const ROOT = __dirname;
+const PUBLIC_DIR = path.join(ROOT, 'public');
+const UPLOAD_DIR = path.join(ROOT, 'uploads');
+fs.mkdirSync(UPLOAD_DIR, { recursive: true });
+
+const app = express();
+app.use(cors());
+app.use(express.json({ limit: '20mb' }));
+app.use(express.urlencoded({ extended: true, limit: '20mb' }));
+app.use(express.static(PUBLIC_DIR));
+
+const upload = multer({
+  dest: UPLOAD_DIR,
+  limits: { fileSize: 50 * 1024 * 1024 }
+});
+
+// -------- Utility functions --------
+const num = (v, d = 0) => {
+  if (v === null || v === undefined || v === '') return d;
+  if (typeof v === 'number') return Number.isFinite(v) ? v : d;
+  const n = Number(String(v).replace(/,/g, '').replace(/%$/, ''));
+  return Number.isFinite(n) ? n : d;
+};
+const pct = v => num(v) / 100;
+const round = (v, digits = 2) => {
+  const p = 10 ** digits;
+  return Math.round((num(v) + Number.EPSILON) * p) / p;
+};
+const clean = v => String(v ?? '').trim();
+const lower = v => clean(v).toLowerCase();
+const sum = xs => xs.reduce((a, b) => a + num(b), 0);
+const safe = (fn, fallback = null) => { try { return fn(); } catch (_) { return fallback; } };
+
+// -------- Excel formulas (migrated) --------
+const EXCEL_FORMULAS = Object.freeze({
+  price_estimation: {
+    H10: 'H11+H12',
+    H11: "'Direct raw material cost'!J10+'Casting parts'!J8",
+    H12: "'standard parts cost'!H8",
+    H13: 'H10*0.07',
+    H14: "'Amimtde DLC and OHC'!E41",
+    H15: "'Machining cost '!W9",
+    H16: "'Service cost'!L3",
+    H17: "'Amimtde DLC and OHC'!H24",
+    H18: "'Amimtde DLC and OHC'!H15",
+    H19: 'H10+H13+H14+H15+H16+H17+H18'
+  },
+  direct_raw_material: {
+    J10: 'SUMIF(I11:I160,">0")*0.85',
+    I11: 'H11*G11*F11',
+    H11: 'LOOKUP(C11,L11:L300,U11:U300)',
+    D11: 'LOOKUP(C11,L11:L300,M11:M300)'
+  },
+  standard_parts: {
+    H8: 'SUM(G9:G45)*0.85',
+    G9: 'F9*D9'
+  },
+  pattern_making: { H5: 'SUMIF(G6:G24,">0")/60' },
+  assembly: { G5: '(F6+F7+F9+F8+F11+F12+F13)/60' },
+  quality_control: { F3: 'SUM(E4:E9)/60' },
+  service: {
+    L3: 'F10+F16+F26+E32',
+    F10: 'N7+M9',
+    F16: 'M13+I15',
+    F26: 'M25+M22+M19',
+    F32: 'M29+L31'
+  }
+});
+
+// -------- Core calculation engines --------
+function materialWeight(opts = {}) {
+  const { shape, densityKgM3 = 7850, lengthMm, widthMm, thicknessMm, diameterMm, outerDiameterMm, innerDiameterMm, quantity = 1 } = opts;
+  const L = num(lengthMm) / 1000;
+  const W = num(widthMm) / 1000;
+  const T = num(thicknessMm) / 1000;
+  const D = num(diameterMm) / 1000;
+  const OD = num(outerDiameterMm) / 1000;
+  const ID = num(innerDiameterMm) / 1000;
+  let volume = 0;
+  switch (lower(shape)) {
+    case 'plate': case 'sheet': case 'flat':
+      volume = L * W * T; break;
+    case 'bar': case 'rod':
+      volume = Math.PI * D * D / 4 * L; break;
+    case 'cylinder': case 'round':
+      volume = Math.PI * D * D / 4 * L; break;
+    case 'pipe': case 'tube':
+      volume = Math.PI * (OD * OD - ID * ID) / 4 * L; break;
+    case 'box': case 'block': case 'rectangular':
+      volume = L * W * T; break;
+    case 'custom':
+      volume = num(opts.volumeM3); break;
+    default:
+      volume = L * W * T;
+  }
+  const per = volume * num(densityKgM3);
+  return { volumeM3: volume, weightKgPerPart: per, totalWeightKg: per * num(quantity, 1) };
+}
+
+function calculateEngineeringEstimate(input = {}) {
+  const s = input.settings || {};
+  const parts = Array.isArray(input.parts) ? input.parts : [];
+  const materials = Array.isArray(input.materials) ? input.materials : [];
+  const castings = Array.isArray(input.castings) ? input.castings : [];
+  const standardParts = Array.isArray(input.standardParts) ? input.standardParts : [];
+  const operations = Array.isArray(input.operations) ? input.operations : [];
+  const labour = Array.isArray(input.labour) ? input.labour : [];
+  const services = Array.isArray(input.services) ? input.services : [];
+
+  const rawMaterial = sum(materials.map(x => num(x.weightKg ?? x.weight) * num(x.unitCost ?? x.etbPerKg) * num(x.qty, 1)));
+  const casting = sum(castings.map(x => num(x.weightKg ?? x.weight) * num(x.unitCost ?? x.costPerKg) * num(x.qty, 1)));
+  const standard = sum(standardParts.map(x => num(x.qty, 1) * num(x.unitPrice ?? x.unitCost)));
+  const materialBase = rawMaterial + casting;
+
+  const materialOHRate = s.excelMaterialOH === undefined ? 0.07 : pct(s.excelMaterialOH);
+  const materialOH = materialBase * materialOHRate;
+
+  const designLabour = num(input.designLabourCost ?? s.designLabourCost);
+  const directLabour = labour.length
+    ? sum(labour.map(x => num(x.hours) * num(x.rate)))
+    : num(input.directLabourCost);
+
+  const machining = sum(operations.map(x => {
+    const hours = num(x.hours ?? x.timeHours ?? x.time);
+    const rate = num(x.rate ?? x.machineRate);
+    return hours * rate;
+  }));
+
+  const pattern = num(input.patternMakingCost ?? s.patternMakingCost);
+  const assembly = num(input.assemblyCost ?? s.assemblyCost);
+  const qc = num(input.qualityControlCost ?? s.qualityControlCost);
+  const manufacturingLabour = designLabour + directLabour + pattern + assembly + qc;
+
+  const service = services.length
+    ? sum(services.map(x => num(x.cost ?? x.total)))
+    : num(input.serviceCost ?? s.serviceCost);
+
+  const factoryRate = pct(s.factoryOverheadPct ?? s.factoryOH ?? 0);
+  const officeRate = pct(s.officeOverheadPct ?? s.officeOH ?? 0);
+  const factoryBase = materialBase + manufacturingLabour + machining;
+  const factoryOH = factoryBase * factoryRate;
+  const officeBase = materialBase + manufacturingLabour + machining + materialOH + factoryOH + service;
+  const officeOH = officeBase * officeRate;
+
+  const subtotal = materialBase + materialOH + manufacturingLabour + machining + service + factoryOH + officeOH;
+  const contingency = subtotal * pct(s.contingencyPct ?? s.contPct ?? 0);
+  const manufacturingCost = subtotal + contingency;
+  const profit = manufacturingCost * pct(s.profitPct ?? s.profit ?? 0);
+  const sellingPrice = manufacturingCost + profit;
+  const qty = num(input.machineQty ?? input.quantity, 1);
+
+  const result = {
+    currency: s.currency || 'ETB',
+    quantity: qty,
+    lines: {
+      rawMaterial: round(rawMaterial),
+      casting: round(casting),
+      materialBase: round(materialBase),
+      standardParts: round(standard),
+      materialOH: round(materialOH),
+      designLabour: round(designLabour),
+      directLabour: round(directLabour),
+      patternMaking: round(pattern),
+      assembly: round(assembly),
+      qualityControl: round(qc),
+      manufacturingLabour: round(manufacturingLabour),
+      machining: round(machining),
+      service: round(service),
+      factoryOH: round(factoryOH),
+      officeOH: round(officeOH),
+      contingency: round(contingency),
+      manufacturingCost: round(manufacturingCost),
+      profit: round(profit),
+      sellingPrice: round(sellingPrice),
+      sellingPricePerMachine: round(sellingPrice / Math.max(qty, 1))
+    },
+    formulaTrace: [
+      { key: 'H10', formula: 'H11+H12', value: round(materialBase + standard) },
+      { key: 'H11', formula: "Direct raw material J10 + Casting parts J8", value: round(materialBase) },
+      { key: 'H12', formula: "standard parts H8", value: round(standard) },
+      { key: 'H13', formula: 'H10*0.07', value: round((materialBase + standard) * 0.07) },
+      { key: 'H14', formula: "Amimtde DLC and OHC E41", value: round(designLabour + directLabour + pattern + assembly + qc) },
+      { key: 'H15', formula: "Machining cost W9", value: round(machining) },
+      { key: 'H16', formula: "Service cost L3", value: round(service) },
+      { key: 'H17', formula: "Amimtde DLC and OHC H24", value: round(factoryOH) },
+      { key: 'H18', formula: "Amimtde DLC and OHC H15", value: round(officeOH) },
+      { key: 'H19', formula: 'H10+H13+H14+H15+H16+H17+H18', value: round(materialBase + standard + (materialBase + standard) * 0.07 + manufacturingLabour + machining + service + factoryOH + officeOH) }
+    ]
+  };
+  return result;
+}
+
+// -------- Supabase client (server-side) --------
+function supabaseServer() {
+  const url = process.env.SUPABASE_URL;
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY;
+  if (!url || !key || !createClient) return null;
+  return createClient(url, key, { auth: { persistSession: false } });
+}
+function actor(req){ return clean(req.headers['x-user-id']) || null; }
+function tableFor(type){ const map={ revision:'revisions', boq:'boq_items', parts:'parts', mpp:'mpp_operations', materials:'materials', suppliers:'suppliers', quotes:'supplier_quotes', purchaseOrders:'purchase_orders', production:'production_orders', actualCosts:'actual_costs', files:'part_files', estimates:'estimates', audit:'audit_log' }; return map[type]||type; }
+
+// -------- Audit helper --------
+async function audit(req, sb, payload) {
+  try {
+    await sb.from('audit_log').insert({ ...payload, actor_id: actor(req), ip_address: req.ip });
+  } catch(e){ console.warn('audit:', e.message); }
+}
+
+// ======================== API ROUTES ========================
+
+// --- Health and version ---
+app.get('/api/health', (req,res)=>res.json({ok:true, service:'engineering-cost-estimator-v6', version:'6.0.0', time:new Date().toISOString(), database:Boolean(process.env.SUPABASE_URL)}));
+app.get('/api/version', (req,res)=>res.json({ok:true, version:'6.0.0', features:[
+  'BOQ↔MPP↔Parts↔Materials linkage','Supabase/PostgreSQL','BOQ revision control',
+  'automatic geometry weight','supplier comparison','purchase/manufacturing costing',
+  'drawing/part files','ERP workflow','Excel formula import/export','audit trail','permissions-ready',
+  'Project→BOQ→MPP→Procurement→Production→Actual Cost'
+]}));
+app.get('/api/formulas', (req,res)=>res.json({version:'6.0.0', formulas:EXCEL_FORMULAS}));
+
+// --- Calculation endpoints ---
+app.post('/api/calculate', (req,res)=>{
+  try { const result=calculateEngineeringEstimate(req.body||{}); res.json({ok:true, version:'6.0.0', result, trace:result.formulaTrace}); }
+  catch(e){ res.status(422).json({ok:false, error:e.message}); }
+});
+app.post('/api/material/weight', (req,res)=>{
+  try { res.json({ok:true, result:materialWeight(req.body||{})}); }
+  catch(e){ res.status(422).json({ok:false, error:e.message}); }
+});
+
+// --- MPP calculation ---
+app.post('/api/mpp/calculate', (req,res)=>{
+  try{
+    const rows=Array.isArray(req.body.operations)?req.body.operations:[];
+    const result=rows.map((o,i)=>{
+      const setup=num(o.setup_min), cycle=num(o.cycle_min), qty=num(o.qty,1);
+      const hours=(setup+cycle*qty)/60;
+      return {...o, row:i, hours:round(hours), machineCost:round(hours*num(o.machine_rate??o.rate)), labourCost:round(hours*num(o.labour_rate)), processCost:round(hours*num(o.process_rate)), totalCost:round(hours*(num(o.machine_rate??o.rate)+num(o.labour_rate)+num(o.process_rate)))};
+    });
+    res.json({ok:true, result, total:round(sum(result.map(x=>x.totalCost)))});
+  }catch(e){ res.status(422).json({ok:false, error:e.message}); }
+});
+
+// --- Procurement comparison ---
+app.post('/api/procurement/compare', (req,res)=>{
+  try{
+    const q=Array.isArray(req.body.quotes)?req.body.quotes:[], qty=num(req.body.qty,1), fx=num(req.body.fxRate,1);
+    const rows=q.map(x=>{
+      const base=num(x.unit_price??x.price_usd_kg)*qty, freight=num(x.freight), duty=base*pct(x.duty_pct), other=num(x.other_cost);
+      const landed=(base+freight+duty+other)*fx;
+      return {...x, baseCost:round(base*fx), dutyCost:round(duty*fx), landedCost:round(landed), costPerUnit:round(landed/Math.max(qty,1))};
+    }).sort((a,b)=>a.landedCost-b.landedCost);
+    res.json({ok:true, rows, recommended:rows[0]||null});
+  }catch(e){ res.status(422).json({ok:false, error:e.message}); }
+});
+
+// --- Excel import/export ---
+app.post('/api/import/inspect', upload.single('file'), (req,res)=>{
+  if(!req.file)return res.status(400).json({ok:false, error:'No Excel file uploaded.'});
+  try{const wb=XLSX.readFile(req.file.path,{cellFormula:true,cellNF:true,cellText:false});res.json({ok:true, version:'6.0.0', file:req.file.originalname, sheets:workbookSummary(wb), sheetNames:wb.SheetNames});}
+  catch(e){res.status(422).json({ok:false, error:e.message});}finally{safe(()=>fs.unlinkSync(req.file.path));}
+});
+app.post('/api/import/excel', upload.single('file'), (req,res)=>{
+  if(!req.file)return res.status(400).json({ok:false, error:'No Excel file uploaded.'});
+  try{const wb=XLSX.readFile(req.file.path,{cellFormula:true,cellNF:true,cellText:false});const sheets=workbookSummary(wb);const requested=req.body.sheet||wb.SheetNames[0];const ws=wb.Sheets[requested];const rows=rowsFromSheet(ws);const mapping=req.body.mapping?JSON.parse(req.body.mapping):{};const normalized=normalizeRows(rows,mapping);res.json({ok:true, version:'6.0.0', file:req.file.originalname, sheets, selectedSheet:requested, rows:normalized, rawRows:rows.slice(0,100), formulas:XLSX.utils.sheet_to_json(ws||{}, {header:1,defval:null,raw:false})});}
+  catch(e){res.status(422).json({ok:false, error:e.message});}finally{safe(()=>fs.unlinkSync(req.file.path));}
+});
+app.post('/api/export/excel', (req,res)=>{
+  try{
+    const wb=XLSX.utils.book_new(), payload=req.body||{};
+    const sheets=payload.sheets||{Estimate:payload.result||payload};
+    for(const [name,data] of Object.entries(sheets)){
+      let ws;
+      if(Array.isArray(data)) ws=XLSX.utils.json_to_sheet(data);
+      else ws=XLSX.utils.json_to_sheet([data]);
+      XLSX.utils.book_append_sheet(wb, ws, String(name).slice(0,31));
+    }
+    const out=path.join(UPLOAD_DIR,'v6_estimate_'+Date.now()+'.xlsx');
+    XLSX.writeFile(wb,out,{bookType:'xlsx',cellFormula:true});
+    res.download(out,'engineering-estimate-v6.xlsx',()=>safe(()=>fs.unlinkSync(out)));
+  }catch(e){ res.status(422).json({ok:false, error:e.message}); }
+});
+// Helpers for Excel import
+function workbookSummary(wb) {
+  return wb.SheetNames.map(name => {
+    const ws = wb.Sheets[name];
+    const ref = ws['!ref'] || 'A1';
+    const range = XLSX.utils.decode_range(ref);
+    let formulas = 0, cells = 0;
+    for (let r = range.s.r; r <= range.e.r; r++) {
+      for (let c = range.s.c; c <= range.e.c; c++) {
+        const cell = ws[XLSX.utils.encode_cell({ r, c })];
+        if (!cell) continue;
+        cells++;
+        if (typeof cell.f === 'string' || (typeof cell.v === 'string' && cell.v.startsWith('='))) formulas++;
+      }
+    }
+    return { name, range: ref, rows: range.e.r + 1, columns: range.e.c + 1, cells, formulas };
+  });
+}
+function rowsFromSheet(ws) {
+  return XLSX.utils.sheet_to_json(ws, { header: 1, defval: null, raw: false });
+}
+function autoMap(headers) {
+  const tests = {
+    part: /part|item|code|number|no\.?$/i,
+    name: /part.?name|description|item.?name|name/i,
+    qty: /qty|quantity|amount/i,
+    material: /material|grade|steel|metal/i,
+    spec: /spec|size|dimension|designation/i,
+    process: /process|operation|manufact|mpp/i,
+    weight: /weight|kg/i,
+    cost: /cost|price|unit.?cost/i
+  };
+  const out = {};
+  for (const [k, re] of Object.entries(tests)) out[k] = headers.findIndex(h => re.test(clean(h)));
+  return out;
+}
+function normalizeRows(rows, mapping = {}) {
+  if (!rows.length) return [];
+  const headers = rows[0].map(clean);
+  const m = { ...autoMap(headers), ...mapping };
+  return rows.slice(1).map((r, i) => ({
+    id: clean(r[m.part] ?? `P-${i + 1}`),
+    name: clean(r[m.name]),
+    qty: num(r[m.qty], 1),
+    material: clean(r[m.material]),
+    specification: clean(r[m.spec]),
+    process: clean(r[m.process]),
+    weightKg: num(r[m.weight]),
+    unitCost: num(r[m.cost])
+  })).filter(x => x.name || x.id || x.material);
+}
+
+// --- Workflow summary ---
+app.get('/api/workflow/:projectId', async(req,res)=>{
+  try{
+    const sb = supabaseServer();
+    if (!sb) return res.status(503).json({ok:false, error:'Supabase not configured'});
+    const pid = req.params.projectId;
+    const out = { project_id: pid };
+    const tables = { boq:'boq_items', parts:'parts', mpp:'mpp_operations', materials:'materials', quotes:'supplier_quotes', po:'purchase_orders', production:'production_orders', actual:'actual_costs', estimates:'estimates' };
+    for (const [key, t] of Object.entries(tables)) {
+      const r = await sb.from(t).select('*', {count:'exact', head:false}).eq('project_id', pid);
+      if (r.error) throw r.error;
+      out[key] = { count: r.count || 0, data: r.data || [] };
+    }
+    const actual = out.actual.data.reduce((a,x)=>a+num(x.total_cost),0);
+    const planned = out.estimates.data.length ? num(out.estimates.data[0]?.result?.lines?.manufacturingCost) : 0;
+    out.variance = { plannedManufacturingCost: round(planned), actualCost: round(actual), variance: round(actual-planned), variancePct: planned ? round((actual-planned)/planned*100) : 0 };
+    res.json({ok:true, workflow:out});
+  }catch(e){ res.status(e.statusCode||400).json({ok:false, error:e.message}); }
+});
+
+// --- Generic CRUD for all tables (Supabase) ---
+app.get('/api/data/:type', async(req,res)=>{
+  try{
+    const sb=supabaseServer(); if(!sb) return res.status(503).json({ok:false, error:'Supabase not configured'});
+    const table=tableFor(req.params.type);
+    let q=sb.from(table).select('*');
+    if(req.query.project_id) q=q.eq('project_id',req.query.project_id);
+    if(req.query.revision_id) q=q.eq('revision_id',req.query.revision_id);
+    if(req.query.part_id) q=q.eq('part_id',req.query.part_id);
+    if(req.query.limit) q=q.limit(Math.min(num(req.query.limit,1000),5000));
+    q=q.order('created_at',{ascending:false});
+    const {data,error}=await q; if(error) throw error;
+    res.json({ok:true, data});
+  }catch(e){ res.status(e.statusCode||400).json({ok:false, error:e.message}); }
+});
+app.get('/api/data/:type/:id', async(req,res)=>{
+  try{
+    const sb=supabaseServer(); if(!sb) return res.status(503).json({ok:false, error:'Supabase not configured'});
+    const {data,error}=await sb.from(tableFor(req.params.type)).select('*').eq('id',req.params.id).single();
+    if(error) throw error;
+    res.json({ok:true, data});
+  }catch(e){ res.status(404).json({ok:false, error:e.message}); }
+});
+app.post('/api/data/:type', async(req,res)=>{
+  try{
+    const sb=supabaseServer(); if(!sb) return res.status(503).json({ok:false, error:'Supabase not configured'});
+    const payload=req.body||{};
+    const {data,error}=await sb.from(tableFor(req.params.type)).insert(payload).select().single();
+    if(error) throw error;
+    await audit(req, sb, {project_id:payload.project_id, action:'CREATE', entity_type:req.params.type, entity_id:data.id, after_data:data});
+    res.status(201).json({ok:true, data});
+  }catch(e){ res.status(422).json({ok:false, error:e.message}); }
+});
+app.patch('/api/data/:type/:id', async(req,res)=>{
+  try{
+    const sb=supabaseServer(); if(!sb) return res.status(503).json({ok:false, error:'Supabase not configured'});
+    const table=tableFor(req.params.type);
+    const oldQ=await sb.from(table).select('*').eq('id',req.params.id).single(); if(oldQ.error) throw oldQ.error;
+    const {data,error}=await sb.from(table).update(req.body||{}).eq('id',req.params.id).select().single();
+    if(error) throw error;
+    await audit(req, sb, {project_id:data.project_id, action:'UPDATE', entity_type:req.params.type, entity_id:data.id, before_data:oldQ.data, after_data:data});
+    res.json({ok:true, data});
+  }catch(e){ res.status(422).json({ok:false, error:e.message}); }
+});
+app.delete('/api/data/:type/:id', async(req,res)=>{
+  try{
+    const sb=supabaseServer(); if(!sb) return res.status(503).json({ok:false, error:'Supabase not configured'});
+    const table=tableFor(req.params.type);
+    const oldQ=await sb.from(table).select('*').eq('id',req.params.id).single(); if(oldQ.error) throw oldQ.error;
+    const {error}=await sb.from(table).delete().eq('id',req.params.id);
+    if(error) throw error;
+    await audit(req, sb, {project_id:oldQ.data.project_id, action:'DELETE', entity_type:req.params.type, entity_id:req.params.id, before_data:oldQ.data});
+    res.json({ok:true});
+  }catch(e){ res.status(422).json({ok:false, error:e.message}); }
+});
+
+// --- Revision snapshot ---
+app.post('/api/revisions/snapshot', async(req,res)=>{
+  try{
+    const sb=supabaseServer(); if(!sb) return res.status(503).json({ok:false, error:'Supabase not configured'});
+    const project_id = req.body.project_id;
+    if(!project_id) throw new Error('project_id required');
+    const revision_no = clean(req.body.revision_no||'R1');
+    const tables=['boq_items','parts','mpp_operations','materials','supplier_quotes'];
+    const snap={};
+    for(const t of tables){
+      let q=sb.from(t).select('*').eq('project_id',project_id);
+      if(t==='boq_items') q=q.eq('revision_id',req.body.revision_id||'00000000-0000-0000-0000-000000000000');
+      const r=await q; if(r.error) throw r.error;
+      snap[t]=r.data||[];
+    }
+    const ins=await sb.from('revisions').insert({project_id, revision_no, reason:req.body.reason||'Snapshot', status:'Draft', snapshot:snap, created_by:actor(req)}).select().single();
+    if(ins.error) throw ins.error;
+    await audit(req, sb, {project_id, action:'REVISION_SNAPSHOT', entity_type:'revision', entity_id:ins.data.id, after_data:ins.data});
+    res.status(201).json({ok:true, revision:ins.data, snapshot:snap});
+  }catch(e){ res.status(422).json({ok:false, error:e.message}); }
+});
+
+// --- Project save (compatibility with V5) ---
+app.post('/api/project/save', async(req,res)=>{
+  try{
+    const sb=supabaseServer(); if(!sb) return res.status(503).json({ok:false, error:'Supabase not configured'});
+    const p=req.body.project||{};
+    const row={name:clean(p.name||p.projectName||'Untitled project'), customer:clean(p.customer), metadata:req.body, machine_qty:num(p.machineQty??p.machine_qty,1), currency:p.currency||'ETB', fx_rate:num(p.fxRate??p.fx_rate,150), status:p.status||'Draft'};
+    let q;
+    if(p.id) q=await sb.from('projects').update(row).eq('id',p.id).select().single();
+    else q=await sb.from('projects').insert(row).select().single();
+    if(q.error) throw q.error;
+    await audit(req, sb, {project_id:q.data.id, action:p.id?'UPDATE':'CREATE', entity_type:'project', entity_id:q.data.id, after_data:q.data});
+    res.json({ok:true, project:q.data});
+  }catch(e){ res.status(422).json({ok:false, error:e.message}); }
+});
+app.get('/api/project/:id', async(req,res)=>{
+  try{
+    const sb=supabaseServer(); if(!sb) return res.status(503).json({ok:false, error:'Supabase not configured'});
+    const {data,error}=await sb.from('projects').select('*').eq('id',req.params.id).single();
+    if(error) throw error;
+    res.json({ok:true, project:data});
+  }catch(e){ res.status(404).json({ok:false, error:e.message}); }
+});
+
+// --- Serve frontend ---
+app.get('*', (req,res)=>res.sendFile(path.join(PUBLIC_DIR, 'index.html')));
+
+// --- Start server ---
+app.listen(PORT, ()=>{
+  console.log(`Engineering Cost Estimator V6 running on http://localhost:${PORT}`);
+  console.log('Workflow: Project -> BOQ -> MPP -> Materials -> Procurement -> Production -> Actual Cost');
+});
