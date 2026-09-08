@@ -3,10 +3,11 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Engineering Cost Estimator V6</title>
+<title>Engineering Cost Estimator V6 – Screw Conveyor</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <style>
+/* -------- same as before, keep all styles -------- */
 :root{--nav:#0b1d33;--nav2:#112a47;--blue:#1683f5;--blue2:#0d6efd;--bg:#f3f6fa;--card:#fff;--line:#e2e8f0;--muted:#667085;--good:#16a36a;--warn:#f59e0b;--bad:#ef4444;--purple:#7357e8;--shadow:0 3px 14px rgba(15,35,60,.07)}
 *{box-sizing:border-box}body{margin:0;background:var(--bg);font:14px Inter,Arial,sans-serif;color:#172033}
 header{height:64px;background:linear-gradient(90deg,#0b1d33,#12355a);color:#fff;padding:10px 24px 10px 24px;position:fixed;left:0;right:0;top:0;z-index:50;display:flex;align-items:center;gap:20px;box-shadow:0 2px 12px rgba(0,0,0,.15)}
@@ -16,16 +17,14 @@ main{max-width:none;margin:0;padding:86px 22px 28px 227px}.page{display:none}.pa
 .card{background:var(--card);border:1px solid var(--line);border-radius:9px;padding:15px;margin-bottom:14px;box-shadow:var(--shadow)}.card h2,.card h3{margin:0 0 11px}.muted{color:var(--muted);font-size:12px}
 label{display:block;font-weight:700;font-size:12px;color:#56657a;margin:8px 0 5px}input,select,textarea{width:100%;padding:8px;border:1px solid #cbd5e1;border-radius:6px;background:#fff}textarea{min-height:75px}.btn{border:0;border-radius:6px;padding:9px 12px;background:var(--blue);color:#fff;font-weight:700;cursor:pointer}.btn.gray{background:#e9eef6;color:#26364f}.btn.green{background:var(--good)}.btn.orange{background:var(--warn)}.btn.red{background:var(--bad)}.btn.sm{padding:6px 8px;font-size:12px}.actions{display:flex;gap:7px;flex-wrap:wrap;margin-top:10px}.tablewrap{overflow:auto;border:1px solid var(--line);border-radius:7px}table{width:100%;border-collapse:collapse;min-width:850px}th,td{padding:8px;border-bottom:1px solid var(--line);font-size:12px;text-align:left;vertical-align:middle}th{background:#f7f9fc;position:sticky;top:0}td input{min-width:80px;padding:5px;font-size:12px}
 .kpi{background:#fff;border:1px solid var(--line);border-radius:9px;padding:14px;box-shadow:var(--shadow);position:relative;overflow:hidden}.kpi:after{content:'';position:absolute;right:-18px;top:-18px;width:60px;height:60px;border-radius:50%;background:#eef6ff}.kpi b{display:block;font-size:22px;margin-top:5px}.badge{display:inline-block;padding:4px 8px;border-radius:99px;background:#eaf2ff;color:#2458bf;font-size:11px;font-weight:700}.ok{background:#e8f7ef;color:#16723d}.warn{background:#fff4dc;color:#8c5e12}.danger{background:#fdecec;color:#a42f2f}.notice{padding:11px;border-radius:7px;background:#edf5ff;border:1px solid #cfe0ff;margin-bottom:12px}.right{text-align:right}
-/* dashboard */
 .projecthero{display:grid;grid-template-columns:145px 1fr;gap:15px;align-items:stretch}.projectphoto{width:145px;height:118px;object-fit:cover;border-radius:7px}.hero-meta{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:12px;margin-top:12px}.hero-meta small{display:block;color:#7b8798;font-size:11px}.hero-meta b{font-size:12px}.dashboard-grid{display:grid;grid-template-columns:1.7fr 1fr .75fr;gap:14px}.workflow{display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin:18px 6px 5px}.step{flex:1;text-align:center;position:relative}.step:not(:last-child):after{content:'→';position:absolute;right:-9px;top:14px;color:#9eb1c7;font-size:22px}.stepicon{width:38px;height:38px;border-radius:50%;display:grid;place-items:center;margin:auto;background:#edf3fa;color:#8091a5;font-weight:900;border:1px solid #dce6f1}.step.done .stepicon{background:#e6f7ee;color:#16a36a;border-color:#bfe7d0}.step.active .stepicon{background:#1683f5;color:#fff;border-color:#1683f5}.step b{display:block;font-size:11px;margin-top:7px}.step span{font-size:10px;color:#7a8798}.photo-card{display:flex;gap:15px}.photo-card img{width:150px;height:108px;object-fit:cover;border-radius:7px}.section-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:9px}.section-head h2{margin:0}.mini-link{color:#1674dc;font-size:11px;font-weight:700}.activity{display:flex;gap:10px;padding:10px 0;border-bottom:1px solid #edf1f5}.activity:last-child{border:0}.activity-icon{width:30px;height:30px;border-radius:8px;background:#edf5ff;display:grid;place-items:center;color:#1683f5;flex:none}.activity b{font-size:11px}.activity small{display:block;color:#8793a2;margin-top:3px}.variance-up{color:#e14b4b;font-weight:800}.variance-down{color:#16a36a;font-weight:800}.quick{display:grid;grid-template-columns:repeat(7,1fr);gap:8px}.quick button{border:1px solid var(--line);background:#fff;border-radius:7px;padding:10px 7px;font-size:11px;color:#34445a;cursor:pointer}.quick button:hover{border-color:#9cc7f6;box-shadow:var(--shadow)}.sidebar-status{margin-top:auto;border:1px solid rgba(255,255,255,.13);border-radius:7px;padding:12px;color:#c9d5e3;font-size:11px}.online{display:inline-block;width:8px;height:8px;background:#23c778;border-radius:50%;margin-right:6px}
 @media(max-width:1200px){.dashboard-grid{grid-template-columns:1fr 1fr}.quick{grid-template-columns:repeat(4,1fr)}}@media(max-width:900px){header{padding-left:10px}.brand{width:auto}.brand small{display:none}.topsearch{display:none}nav#nav{width:64px;padding:10px 7px}nav button{font-size:0;text-align:center;padding:12px 5px}nav button:before{margin:0;width:auto;font-size:17px}main{padding-left:80px}.g2,.g3,.g4,.dashboard-grid{grid-template-columns:1fr}.projecthero{grid-template-columns:1fr}.projectphoto{width:100%;height:160px}.hero-meta{grid-template-columns:repeat(2,1fr)}}
 @media print{header,nav,.no-print{display:none!important}.page{display:block!important}main{padding:0}.card{box-shadow:none}}
-
-.drawing-thumb{width:92px;height:68px;border:1px solid #d8e1ec;border-radius:8px;background:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer;overflow:hidden}.drawing-thumb svg{width:100%;height:100%}.drawing-cell{min-width:118px}.drawing-meta{font-size:10px;color:#64748b;text-align:center;margin-top:3px}.drawing-modal{position:fixed;inset:0;background:rgba(6,20,38,.72);z-index:9999;display:none;align-items:center;justify-content:center;padding:24px}.drawing-modal.show{display:flex}.drawing-panel{background:#fff;border-radius:16px;width:min(900px,96vw);max-height:92vh;overflow:auto;box-shadow:0 24px 70px rgba(0,0,0,.3)}.drawing-panel-head{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid #e5e7eb}.drawing-canvas{padding:20px;background:#f5f7fa}.drawing-canvas svg{display:block;width:100%;height:auto;max-height:62vh;background:#fff;border:1px solid #cbd5e1}.drawing-info{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;padding:16px 20px}.drawing-info div{background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:9px}.drawing-info small{display:block;color:#64748b}.drawing-info b{font-size:13px}@media(max-width:700px){.drawing-info{grid-template-columns:repeat(2,1fr)}}
+.drawing-thumb{width:92px;height:68px;border:1px solid #d8e1ec;border-radius:8px;background:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer;overflow:hidden}.drawing-thumb svg{width:100%;height:100%}.drawing-cell{min-width:118px}.drawing-meta{font-size:10px;color:#64748b;text-align:center;margin-top:3px}.drawing-modal{position:fixed;inset:0;background:rgba(6,20,38,.72);z-index:9999;display:none;align-items:center;justify-content:center;padding:24px}.drawing-modal.show{display:flex}.drawing-panel{background:#fff;border-radius:16px;width:min(900px,96vw);max-height:92vh;overflow:auto;box-shadow:0 24px 70px rgba(0,0,0,.3)}.drawing-panel-head{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid #e5e7eb}.drawing-canvas{padding:20px;background:#f5f7fa}.drawing-canvas iframe{width:100%;height:65vh;border:1px solid #cbd5e1;background:#fff}.drawing-canvas svg{display:block;width:100%;height:auto;max-height:62vh;background:#fff;border:1px solid #cbd5e1}.drawing-info{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;padding:16px 20px}.drawing-info div{background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:9px}.drawing-info small{display:block;color:#64748b}.drawing-info b{font-size:13px}@media(max-width:700px){.drawing-info{grid-template-columns:repeat(2,1fr)}}
 </style>
 </head>
 <body>
-<header><div class="brand"><div class="brandmark">⚙</div><div><h1>Engineering Cost Estimator V6</h1><small>From Project to Actual Cost — One Platform</small></div></div><div class="topsearch"><span>⌕</span><input placeholder="Search projects, parts, materials, suppliers..."></div><div class="topuser"><span>🔔</span><div class="avatar">A</div><div><b>Admin</b><br><small>System Administrator</small></div><span>⌄</span></div></header>
+<header><div class="brand"><div class="brandmark">⚙</div><div><h1>Engineering Cost Estimator V6</h1><small>20 TPH Screw Conveyor – BOQ & MPP</small></div></div><div class="topsearch"><span>⌕</span><input placeholder="Search projects, parts, materials, suppliers..."></div><div class="topuser"><span>🔔</span><div class="avatar">A</div><div><b>Admin</b><br><small>System Administrator</small></div><span>⌄</span></div></header>
 <nav id="nav">
 <button class="active" onclick="page('dash',this)">Dashboard</button><button onclick="page('project',this)">Projects</button><button onclick="page('import',this)">BOQ</button><button onclick="page('process',this)">MPP</button><button onclick="page('parts',this)">Parts</button><button onclick="page('materials',this)">Materials</button><button onclick="page('suppliers',this)">Suppliers</button><button onclick="page('estimate',this)">Procurement / Cost</button><button onclick="page('files',this)">Drawings & Files</button><button onclick="page('settings',this)">Settings</button>
 <div class="sidebar-status"><b>V6.0.0</b><br><span class="online"></span>System Online<br><br><span>▰ Powered by Supabase / PostgreSQL</span></div></nav>
@@ -33,12 +32,12 @@ label{display:block;font-weight:700;font-size:12px;color:#56657a;margin:8px 0 5p
 <div id="drawingModal" class="drawing-modal" onclick="if(event.target===this)closeDrawing()"><div class="drawing-panel"><div class="drawing-panel-head"><div><b id="drawingTitle">2D Part Drawing</b><div id="drawingSubtitle" class="muted"></div></div><button class="btn gray" onclick="closeDrawing()">Close</button></div><div id="drawingCanvas" class="drawing-canvas"></div><div id="drawingInfo" class="drawing-info"></div></div></div>
 <main>
 <section id="dash" class="page active">
-<div class="card projecthero"><img class="projectphoto" src="/project-steel.jpg" alt="Steel structure project"><div><div class="section-head"><div><span class="badge ok">● In Production</span> <span class="badge">Rev: R03</span><h2 style="display:inline;margin-left:8px">Project: Steel Structure Package A</h2></div><button class="btn gray no-print" onclick="page('project',document.querySelectorAll('#nav button')[1])">Edit</button></div><div class="muted">ABC Construction Ltd. · Steel structure for industrial warehouse with custom fabricated components.</div><div class="hero-meta"><div><small>Start Date</small><b>2025-08-01</b></div><div><small>End Date</small><b>2025-10-30</b></div><div><small>Estimate</small><b id="heroEstimate">—</b></div><div><small>Revision</small><b>BOQ-R03</b></div></div></div></div>
+<div class="card projecthero"><img class="projectphoto" src="/project-steel.jpg" alt="Steel structure project"><div><div class="section-head"><div><span class="badge ok">● In Production</span> <span class="badge">Rev: R03</span><h2 style="display:inline;margin-left:8px">Project: 20 TPH Screw Conveyor</h2></div><button class="btn gray no-print" onclick="page('project',document.querySelectorAll('#nav button')[1])">Edit</button></div><div class="muted">Amhara Metal Industry & Machine Technology Development Enterprise · Limestone Screw Conveyor.</div><div class="hero-meta"><div><small>Start Date</small><b>2025-08-01</b></div><div><small>End Date</small><b>2025-10-30</b></div><div><small>Estimate</small><b id="heroEstimate">—</b></div><div><small>Revision</small><b>BOQ-R03</b></div></div></div></div>
 <div class="grid g4"><div class="kpi"><span class="muted">BOQ Value</span><b id="kboqValue">ETB 248,500</b></div><div class="kpi"><span class="muted">Material Cost</span><b id="kmat">ETB 91,240</b></div><div class="kpi"><span class="muted">Purchase Cost</span><b id="kpurchase">ETB 103,800</b></div><div class="kpi"><span class="muted">Actual Cost</span><b id="kactualTop">ETB 76,420</b></div></div>
 <div class="dashboard-grid">
 <div>
 <div class="card"><div class="section-head"><h2>Project Workflow</h2><span class="mini-link">View workflow</span></div><div class="workflow"><div class="step done"><div class="stepicon">✓</div><b>1. Project</b><span>Completed</span></div><div class="step done"><div class="stepicon">✓</div><b>2. BOQ</b><span>Completed</span></div><div class="step done"><div class="stepicon">✓</div><b>3. MPP</b><span>Completed</span></div><div class="step done"><div class="stepicon">✓</div><b>4. Procurement</b><span>Completed</span></div><div class="step active"><div class="stepicon">⚙</div><b>5. Production</b><span>In Progress</span></div><div class="step"><div class="stepicon">⚙</div><b>6. Actual Cost</b><span>2 Pending</span></div></div></div>
-<div class="card"><div class="section-head"><h2>Recent Projects</h2><span class="mini-link">View All</span></div><div class="tablewrap"><table style="min-width:650px"><tr><th>ID</th><th>Project Name</th><th>Status</th><th>Revision</th><th>Total Value</th><th>Last Updated</th></tr><tr><td>PRJ-001</td><td>Steel Structure Package A</td><td><span class="badge ok">In Production</span></td><td>R03</td><td>ETB 248,500</td><td>10 min ago</td></tr><tr><td>PRJ-002</td><td>Conveyor System</td><td><span class="badge">Planning</span></td><td>R01</td><td>ETB 156,300</td><td>2 hours ago</td></tr><tr><td>PRJ-003</td><td>Storage Tank</td><td><span class="badge warn">Procurement</span></td><td>R02</td><td>ETB 320,750</td><td>5 hours ago</td></tr><tr><td>PRJ-004</td><td>Factory Building</td><td><span class="badge">Production</span></td><td>R01</td><td>ETB 412,600</td><td>1 day ago</td></tr></table></div></div>
+<div class="card"><div class="section-head"><h2>Recent Projects</h2><span class="mini-link">View All</span></div><div class="tablewrap"><table style="min-width:650px"><tr><th>ID</th><th>Project Name</th><th>Status</th><th>Revision</th><th>Total Value</th><th>Last Updated</th></tr><tr><td>PRJ-001</td><td>20 TPH Screw Conveyor</td><td><span class="badge ok">In Production</span></td><td>R03</td><td>ETB 248,500</td><td>10 min ago</td></tr><tr><td>PRJ-002</td><td>Conveyor System</td><td><span class="badge">Planning</span></td><td>R01</td><td>ETB 156,300</td><td>2 hours ago</td></tr><tr><td>PRJ-003</td><td>Storage Tank</td><td><span class="badge warn">Procurement</span></td><td>R02</td><td>ETB 320,750</td><td>5 hours ago</td></tr><tr><td>PRJ-004</td><td>Factory Building</td><td><span class="badge">Production</span></td><td>R01</td><td>ETB 412,600</td><td>1 day ago</td></tr></table></div></div>
 <div class="card"><div class="section-head"><h2>BOQ Overview</h2><span class="mini-link">View All</span></div><div class="tablewrap"><table style="min-width:650px"><tr><th>#</th><th>2D Drawing</th><th>Part No.</th><th>Description</th><th>Qty</th><th>Material</th><th>Unit Cost</th><th>Total</th></tr><tr><td>01</td><td class="drawing-cell"><div class="drawing-thumb" onclick="openDrawing({part_no:'P-1001',description:'Base Plate',qty:24,material:'S355',dims:{type:'plate',length:300,width:250,thickness:12}})"><span>View</span></div></td><td>P-1001</td><td>Base Plate</td><td>24</td><td>S355</td><td>ETB 42.50</td><td>ETB 1,020</td></tr><tr><td>02</td><td class="drawing-cell"><div class="drawing-thumb" onclick="openDrawing({part_no:'P-1002',description:'Column',qty:12,material:'S355',dims:{type:'rectbar',length:6000,width:250,height:250}})"><span>View</span></div></td><td>P-1002</td><td>12</td><td>S355</td><td>ETB 185.20</td><td>ETB 2,222</td></tr><tr><td>03</td><td class="drawing-cell"><div class="drawing-thumb" onclick="openDrawing({part_no:'P-1003',description:'Beam',qty:18,material:'S355',dims:{type:'rectbar',length:6000,width:200,height:300}})"><span>View</span></div></td><td>P-1003</td><td>18</td><td>S355</td><td>ETB 241.80</td><td>ETB 4,352</td></tr><tr><td>04</td><td class="drawing-cell"><div class="drawing-thumb" onclick="openDrawing({part_no:'P-1004',description:'Bracing',qty:36,material:'S275',dims:{type:'rod',length:3500,diameter:20}})"><span>View</span></div></td><td>P-1004</td><td>36</td><td>S275</td><td>ETB 128.40</td><td>ETB 4,622</td></tr><tr><th colspan="7">Total (BOQ Value)</th><th>ETB 248,500</th></tr></table></div></div>
 </div>
 <div>
@@ -47,7 +46,7 @@ label{display:block;font-weight:700;font-size:12px;color:#56657a;margin:8px 0 5p
 <div class="card"><div class="section-head"><h2>Top Material Costs</h2><span class="mini-link">View All</span></div><table style="min-width:0"><tr><th>Material</th><th>Weight</th><th>Cost</th></tr><tr><td>S355 Steel</td><td>18,450 kg</td><td>ETB 42,600</td></tr><tr><td>S275 Steel</td><td>8,230 kg</td><td>ETB 18,400</td></tr><tr><td>Bolts & Fasteners</td><td>2,460 kg</td><td>ETB 6,800</td></tr><tr><td>Paint & Coating</td><td>1,230 kg</td><td>ETB 4,200</td></tr><tr><th>Total</th><th></th><th>ETB 91,240</th></tr></table></div>
 </div>
 <div>
-<div class="card"><div class="section-head"><h2>Recent Activity</h2><span class="mini-link">View All</span></div><div class="activity"><div class="activity-icon">▤</div><div><b>Ahmed updated BOQ-R03</b><small>Project: Steel Structure Package A<br>10 min ago</small></div></div><div class="activity"><div class="activity-icon">🛒</div><div><b>Steel supplier quote imported</b><small>Material: S355 Plate<br>32 min ago</small></div></div><div class="activity"><div class="activity-icon">⚙</div><div><b>MPP-024 released to production</b><small>1 hour ago</small></div></div><div class="activity"><div class="activity-icon">▣</div><div><b>Purchase Order PO-0087 created</b><small>Supplier: Steel Suppliers Ltd.<br>2 hours ago</small></div></div><div class="activity"><div class="activity-icon">📐</div><div><b>Drawing P-1002 updated</b><small>Version: R03<br>3 hours ago</small></div></div><div class="activity"><div class="activity-icon">◉</div><div><b>Actual cost updated</b><small>Production: MPP-024<br>5 hours ago</small></div></div></div></div>
+<div class="card"><div class="section-head"><h2>Recent Activity</h2><span class="mini-link">View All</span></div><div class="activity"><div class="activity-icon">▤</div><div><b>Ahmed updated BOQ-R03</b><small>Project: 20 TPH Screw Conveyor<br>10 min ago</small></div></div><div class="activity"><div class="activity-icon">🛒</div><div><b>Steel supplier quote imported</b><small>Material: S355 Plate<br>32 min ago</small></div></div><div class="activity"><div class="activity-icon">⚙</div><div><b>MPP-024 released to production</b><small>1 hour ago</small></div></div><div class="activity"><div class="activity-icon">▣</div><div><b>Purchase Order PO-0087 created</b><small>Supplier: Steel Suppliers Ltd.<br>2 hours ago</small></div></div><div class="activity"><div class="activity-icon">📐</div><div><b>Drawing P-1002 updated</b><small>Version: R03<br>3 hours ago</small></div></div><div class="activity"><div class="activity-icon">◉</div><div><b>Actual cost updated</b><small>Production: MPP-024<br>5 hours ago</small></div></div></div></div>
 <div class="card"><h2>System Information</h2><div class="muted" style="line-height:2">Application Version <b>V6.0.0</b><br>Database <b>Supabase (PostgreSQL)</b><br>Last Backup <b>Today 02:00</b><br>Environment <b>Production</b></div></div>
 </div></div>
 <div class="card"><div class="section-head"><h2>Quick Actions</h2></div><div class="quick"><button onclick="page('project',document.querySelectorAll('#nav button')[1])">＋<br>Add New Project</button><button onclick="page('import',document.querySelectorAll('#nav button')[2])">▤<br>Create BOQ</button><button onclick="page('files',document.querySelectorAll('#nav button')[8])">☁<br>Upload Drawings</button><button onclick="page('suppliers',document.querySelectorAll('#nav button')[6])">⚖<br>Compare Suppliers</button><button onclick="page('estimate',document.querySelectorAll('#nav button')[7])">🛒<br>Create Purchase Order</button><button onclick="page('estimate',document.querySelectorAll('#nav button')[7])">▥<br>View Reports</button><button onclick="exportV6Excel()">▣<br>Export to Excel</button></div></div>
@@ -63,8 +62,8 @@ label{display:block;font-weight:700;font-size:12px;color:#56657a;margin:8px 0 5p
 
 <section id="import" class="page">
 <div class="grid g2">
-<div class="card"><h2>BOQ import</h2><input id="boqFile" type="file" accept=".xlsx,.xls,.csv"><div class="actions"><button class="btn" onclick="importExcel('boqFile','boq')">Import BOQ</button></div><p id="boqMsg" class="muted"></p></div>
-<div class="card"><h2>MPP import</h2><input id="mppFile" type="file" accept=".xlsx,.xls,.csv"><div class="actions"><button class="btn" onclick="importExcel('mppFile','mpp')">Import MPP</button></div><p id="mppMsg" class="muted"></p></div>
+<div class="card"><h2>BOQ import</h2><p class="muted">Expected columns: Part No, Description, Qty, Material, Material Type, Material Profile, Blank Size, Drawing No, Spec, Weight, Process</p><input id="boqFile" type="file" accept=".xlsx,.xls,.csv"><div class="actions"><button class="btn" onclick="importExcel('boqFile','boq')">Import BOQ</button></div><p id="boqMsg" class="muted"></p></div>
+<div class="card"><h2>MPP import</h2><p class="muted">Expected columns: Part No, Operation, Machine, Setup min, Cycle min, Qty, Rate, Labour Rate, Material Type, Material Profile, Blank Size, Drawing No</p><input id="mppFile" type="file" accept=".xlsx,.xls,.csv"><div class="actions"><button class="btn" onclick="importExcel('mppFile','mpp')">Import MPP</button></div><p id="mppMsg" class="muted"></p></div>
 </div>
 <div class="card"><h2>Automatic column mapping</h2><div id="mapping"></div><div class="actions"><button class="btn green" onclick="buildParts()">Build Parts</button><button class="btn orange" onclick="matchParts()">Match BOQ ↔ MPP</button></div></div>
 <div class="card"><h2>Preview</h2><div id="preview" class="tablewrap"></div></div>
@@ -81,16 +80,15 @@ label{display:block;font-weight:700;font-size:12px;color:#56657a;margin:8px 0 5p
 <section id="estimate" class="page"><div class="card"><h2>Complete Excel-model cost build-up</h2><p class="muted">This V5 preserves the identified workbook relationships: raw material + casting → 7% material overhead → direct labour → machining → service → factory overhead → head-office overhead → total manufacturing cost → profit → selling price. The detailed engineering sheets are represented as editable inputs below.</p>
 <div class="grid g3"><div><label>Materials overhead %</label><input id="matOH" type="number" value="7" onchange="calc()"></div><div><label>Factory overhead %</label><input id="factoryOH" type="number" value="0" onchange="calc()"></div><div><label>Head-office overhead %</label><input id="officeOH" type="number" value="0" onchange="calc()"></div><div><label>Service cost ETB</label><input id="service" type="number" value="0" onchange="calc()"></div><div><label>Profit %</label><input id="profit" type="number" value="10" onchange="calc()"></div><div><label>Contingency %</label><input id="contingency" type="number" value="0" onchange="calc()"></div></div><br><div id="estimateTable" class="tablewrap"></div></div></section>
 
-<section id="files" class="page"><div class="card"><h2>Drawings & part files</h2><p class="muted">Upload drawings, PDFs, images, CAD exports, specifications and other part documents to Supabase Storage and link them to the selected project/part.</p><div class="grid g3"><div><label>Part ID</label><input id="filePart" placeholder="P-0001"></div><div><label>File</label><input id="assetFile" type="file"></div><div><label>Description</label><input id="fileDesc"></div></div><div class="actions"><button class="btn" onclick="uploadAsset()">Upload to Supabase Storage</button></div><div id="assetList"></div></div>
+<section id="files" class="page"><div class="card"><h2>Drawings & part files</h2><p class="muted">Upload drawings (PDF, JPG, PNG, CAD) and link to a specific part. The drawing will be shown when you click the "View" button in the Parts table.</p><div class="grid g3"><div><label>Part ID (Part No.)</label><input id="filePart" placeholder="P-0001"></div><div><label>File</label><input id="assetFile" type="file" accept=".pdf,.jpg,.jpeg,.png,.dwg,.dxf,.svg"></div><div><label>Description</label><input id="fileDesc" placeholder="e.g., Drawing revision A"></div></div><div class="actions"><button class="btn" onclick="uploadAsset()">Upload to Supabase Storage</button><button class="btn gray" onclick="loadFilesForProject()">Refresh file list</button></div><div id="assetList"></div></div>
 <div class="card"><h2>Revision files</h2><p class="muted">Keep each BOQ, MPP and drawing attached to its revision. Use immutable revision numbers for approved engineering baselines.</p></div></section>
 
 <section id="settings" class="page"><div class="card"><h2>Supabase connection</h2><div class="notice">Use your project's Supabase URL and publishable/anon key. Never put a service-role key in this browser app. Supabase recommends protecting exposed tables with Row Level Security.</div><label>Supabase URL</label><input id="sbUrl" placeholder="https://YOUR_PROJECT.supabase.co"><label>Publishable / anon key</label><input id="sbKey" type="password" placeholder="YOUR_PUBLISHABLE_KEY"><div class="actions"><button class="btn green" onclick="connect()">Connect</button><button class="btn gray" onclick="testConnection()">Test Database</button></div><p id="connMsg" class="muted"></p></div>
 <div class="card"><h2>Engineering rates</h2><div class="grid g3"><div><label>Machining ETB/hour</label><input id="machRate" type="number" value="500"></div><div><label>Labour ETB/hour</label><input id="labRate" type="number" value="250"></div><div><label>Design ETB/hour</label><input id="designRate" type="number" value="300"></div><div><label>QC ETB/hour</label><input id="qcRate" type="number" value="250"></div><div><label>Assembly ETB/hour</label><input id="assemblyRate" type="number" value="250"></div></div></div></section>
 </main>
 
-<!-- ==================== All frontend JavaScript embedded here ==================== -->
 <script>
-// -------- V6 Brain API client (formerly v6-api.js) --------
+// -------- V6 Brain API client --------
 window.V6Brain = {
   async request(url, options={}) {
     const r=await fetch(url,{headers:{'Content-Type':'application/json',...(options.headers||{})},...options});
@@ -113,17 +111,37 @@ window.V6Brain = {
     const blob=await r.blob(), a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='engineering-estimate-v6.xlsx';a.click();URL.revokeObjectURL(a.href);
   }
 };
-// Keep V5Brain alias for compatibility
 window.V5Brain = window.V6Brain;
 
-// -------- Application state and logic --------
-const DB={boq:[],mpp:[],parts:[],suppliers:[],ops:[],projectId:null,revisionId:null,estimate:{}};
+// -------- Application state --------
+const DB={boq:[], mpp:[], parts:[], suppliers:[], ops:[], files:[], projectId:null, revisionId:null, estimate:{}};
 let sb=null;
-const aliases={part:['part no','part number','item no','item number','code','component no','drawing no'],desc:['description','part name','item description','component name','name'],qty:['qty','quantity','required qty','amount'],material:['material','material grade','raw material','grade'],spec:['specification','spec','size','dimension','dimensions'],weight:['weight','mass','kg'],process:['process','operation','manufacturing process'],setup:['setup time','setup min'],cycle:['cycle time','cycle min','operation time'],rate:['rate','hourly rate']};
+
+// -------- Extended aliases for your PDF columns --------
+const aliases = {
+  part: ['part no','part number','item no','item number','code','component no','drawing no'],
+  desc: ['description','part name','item description','component name','name'],
+  qty: ['qty','quantity','required qty','amount'],
+  material: ['material','material grade','raw material','grade'],
+  spec: ['specification','spec','size','dimension','dimensions'],
+  weight: ['weight','mass','kg'],
+  process: ['process','operation','manufacturing process'],
+  setup: ['setup time','setup min'],
+  cycle: ['cycle time','cycle min','operation time'],
+  rate: ['rate','hourly rate'],
+  // New fields from your PDFs
+  materialType: ['material type','type'],
+  materialProfile: ['material profile','profile'],
+  blankSize: ['blank size','blank'],
+  drawingNo: ['drawing no','drawing number','dwg no'],
+  operationTime: ['operation time','op time']
+};
+
 const $=id=>document.getElementById(id);
 const norm=x=>String(x??'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim();
 const money=x=>'ETB '+Number(x||0).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2});
-const num=(v,d=0)=>{const n=Number(v);return isFinite(n)?n:d;};
+const num=(v,d=0)=>{const n=Number(v); return isFinite(n)?n:d;};
+const escapeHtml=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 
 function page(id,b){
   document.querySelectorAll('.page').forEach(x=>x.classList.remove('active'));
@@ -144,7 +162,7 @@ async function testConnection(){if(!sb)return connect();const {error}=await sb.f
 // -------- Project CRUD --------
 async function upsertProject(){
   if(!sb)return alert('Connect Supabase first.');
-  const row={name:$('projectName').value,estimate_no:$('estimateNo').value,customer:$('customer').value,machine_qty:Number($('machineQty').value||1),currency:'ETB',fx_rate:Number($('fx').value||150),status:$('status').value};
+  const row={name:$('projectName').value, estimate_no:$('estimateNo').value, customer:$('customer').value, machine_qty:Number($('machineQty').value||1), currency:'ETB', fx_rate:Number($('fx').value||150), status:$('status').value};
   let q=DB.projectId?await sb.from('projects').update(row).eq('id',DB.projectId).select().single():await sb.from('projects').insert(row).select().single();
   if(q.error)return alert(q.error.message);
   DB.projectId=q.data.id;
@@ -166,17 +184,17 @@ async function selectProject(id){
   $('machineQty').value=data.machine_qty||1;
   $('fx').value=data.fx_rate||150;
   $('status').value=data.status||'Draft';
-  // load parts/suppliers/ops from generic data endpoints
   try {
     const parts=await V6Brain.data('parts',id); DB.parts=parts.data||[];
     const suppliers=await V6Brain.data('suppliers',id); DB.suppliers=suppliers.data||[];
     const ops=await V6Brain.data('mpp_operations',id); DB.ops=ops.data||[];
-    renderParts(); renderSuppliers(); renderOps(); calc();
-  } catch(e){ /* ignore */ }
+    const files=await V6Brain.data('files',id); DB.files=files.data||[];
+    renderParts(); renderSuppliers(); renderOps(); renderFiles(); calc();
+  } catch(e){ alert(e.message); }
 }
 async function saveRevision(){
   if(!sb||!DB.projectId)return alert('Save/open a project first.');
-  const {data,error}=await sb.from('revisions').insert({project_id:DB.projectId,revision_no:$('revisionNo').value,reason:$('revisionReason').value,status:$('revisionStatus').value}).select().single();
+  const {data,error}=await sb.from('revisions').insert({project_id:DB.projectId, revision_no:$('revisionNo').value, reason:$('revisionReason').value, status:$('revisionStatus').value}).select().single();
   if(error)return alert(error.message);
   DB.revisionId=data.id;
   alert('Revision saved: '+data.revision_no);
@@ -198,15 +216,19 @@ async function importExcel(id,type){
 function guess(cols,f){for(const c of cols){const n=norm(c); if((aliases[f]||[]).some(a=>n===a||n.includes(a)))return c;}return '';}
 function renderMapping(){
   const b=DB.boq[0]?Object.keys(DB.boq[0]):[], m=DB.mpp[0]?Object.keys(DB.mpp[0]):[];
-  const fs=['part','desc','qty','material','spec','weight','process'];
-  let h='<div class="grid g2"><div><h3>BOQ</h3>'; fs.forEach(f=>h+=sel('b_'+f,guess(b,f),b)); h+='</div><div><h3>MPP</h3>'; fs.forEach(f=>h+=sel('m_'+f,guess(m,f),m)); h+='</div></div>';
+  const fs=['part','desc','qty','material','spec','weight','process','materialType','materialProfile','blankSize','drawingNo'];
+  let h='<div class="grid g2"><div><h3>BOQ</h3>';
+  fs.forEach(f=>h+=sel('b_'+f,guess(b,f),b));
+  h+='</div><div><h3>MPP</h3>';
+  fs.forEach(f=>h+=sel('m_'+f,guess(m,f),m));
+  h+='</div></div>';
   $('mapping').innerHTML=h;
 }
 function sel(id,v,cs){return `<label>${id}</label><select id="${id}">${['',...cs].map(c=>`<option ${c===v?'selected':''}>${String(c).replace(/</g,'&lt;')}</option>`).join('')}</select>`;}
 function renderPreview(){const a=DB.boq.slice(0,5),b=DB.mpp.slice(0,5);$('preview').innerHTML='<h3>BOQ</h3>'+tab(a)+'<h3>MPP</h3>'+tab(b);}
 function tab(rows){if(!rows.length)return '<p class="muted">No data</p>';const c=Object.keys(rows[0]);return '<table><tr>'+c.map(x=>'<th>'+x+'</th>').join('')+'</tr>'+rows.map(r=>'<tr>'+c.map(x=>'<td>'+r[x]+'</td>').join('')+'</tr>').join('')+'</table>';}
 
-// -------- Parts --------
+// -------- Parts (with extended fields) --------
 function buildParts(){
   const get=(r,t)=>{const x=$('b_'+t)?.value; return x?r[x]:'';};
   DB.parts=DB.boq.map((r,i)=>({
@@ -221,6 +243,11 @@ function buildParts(){
     mpp_index:null,
     material_price_usd_kg:0,
     manual_material_cost:0,
+    // New fields
+    materialType:get(r,'materialType'),
+    materialProfile:get(r,'materialProfile'),
+    blankSize:get(r,'blankSize'),
+    drawingNo:get(r,'drawingNo'),
     dims:{type:inferDrawingType({description:get(r,'desc'),specification:get(r,'spec')})}
   }));
   matchParts(); renderParts(); calc();
@@ -241,11 +268,11 @@ function matchParts(){
   renderParts();
 }
 function addPart(){
-  DB.parts.push({part_no:'P-'+String(DB.parts.length+1).padStart(4,'0'), description:'', qty:1, material:'', specification:'', weight_kg:0, process:'', match_score:0, mpp_index:null, material_price_usd_kg:0, manual_material_cost:0});
+  DB.parts.push({part_no:'P-'+String(DB.parts.length+1).padStart(4,'0'), description:'', qty:1, material:'', specification:'', weight_kg:0, process:'', match_score:0, mpp_index:null, material_price_usd_kg:0, manual_material_cost:0, materialType:'', materialProfile:'', blankSize:'', drawingNo:'', dims:{}});
   renderParts();
 }
-// Drawing functions
-function escapeHtml(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+
+// -------- Drawing functions (SVG fallback + actual file viewer) --------
 function inferDrawingType(p){const x=norm((p.description||'')+' '+(p.specification||'')); if(x.includes('plate'))return'plate'; if(x.includes('column')||x.includes('beam')||x.includes('bar'))return'rectbar'; if(x.includes('pipe'))return'pipe'; if(x.includes('rod')||x.includes('brace'))return'rod'; return'custom';}
 function partDrawingSvg(p,large=false){
   const d=p.dims||{}, type=d.type||inferDrawingType(p);
@@ -263,20 +290,44 @@ function partDrawingSvg(p,large=false){
   }
   return `<svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg"><rect width="100%" height="100%" fill="white"/><text x="${W*.04}" y="${H*.12}" font-size="${fs}" font-weight="700" fill="#0f172a">${label}</text>${body}</svg>`;
 }
-function openDrawing(p){const copy=JSON.parse(JSON.stringify(p)); $('drawingTitle').textContent=(copy.part_no||'Part')+' — 2D Drawing'; $('drawingSubtitle').textContent=copy.description||'Engineering part drawing'; $('drawingCanvas').innerHTML=partDrawingSvg(copy,true); const d=copy.dims||{}; $('drawingInfo').innerHTML=[['Part',copy.part_no||'—'],['Material',copy.material||'—'],['Quantity',copy.qty||0],['Dimensions',Object.entries(d).filter(([k])=>k!=='type'&&k!=='density'&&k!=='volume_m3').map(([k,v])=>k+': '+v).join(' · ')||'Not specified']].map(x=>`<div><small>${escapeHtml(x[0])}</small><b>${escapeHtml(x[1])}</b></div>`).join(''); $('drawingModal').classList.add('show');}
+
+function openDrawing(p, fileUrl){
+  if(!p) p={part_no:'Unknown', description:'', dims:{}};
+  const copy=JSON.parse(JSON.stringify(p));
+  $('drawingTitle').textContent=(copy.part_no||'Part')+' — 2D Drawing';
+  $('drawingSubtitle').textContent=copy.description||'Engineering part drawing';
+  const canvas=$('drawingCanvas');
+  if(fileUrl){
+    // Show the actual uploaded file (PDF/image) in an iframe
+    canvas.innerHTML=`<iframe src="${fileUrl}" allowfullscreen></iframe>`;
+  } else {
+    // Fallback to generated SVG
+    canvas.innerHTML=partDrawingSvg(copy,true);
+  }
+  const d=copy.dims||{};
+  $('drawingInfo').innerHTML=[['Part',copy.part_no||'—'],['Material',copy.material||'—'],['Quantity',copy.qty||0],['Dimensions',Object.entries(d).filter(([k])=>k!=='type'&&k!=='density'&&k!=='volume_m3').map(([k,v])=>k+': '+v).join(' · ')||'Not specified']].map(x=>`<div><small>${escapeHtml(x[0])}</small><b>${escapeHtml(x[1])}</b></div>`).join('');
+  $('drawingModal').classList.add('show');
+}
 function closeDrawing(){$('drawingModal').classList.remove('show');}
-function drawingButton(p){return `<div class="drawing-thumb" title="Open 2D drawing" onclick='openDrawing(${JSON.stringify(p).replace(/'/g,"&#39;")})'>${partDrawingSvg(p,false)}</div><div class="drawing-meta">2D • View</div>`;}
+function drawingButton(p){
+  // Check if there is a file for this part in DB.files
+  const file = DB.files.find(f => f.part_no === p.part_no || f.part_id === p.id);
+  const fileUrl = file ? (sb ? sb.storage.from('engineering-files').getPublicUrl(file.storage_path).publicUrl : null) : null;
+  const onclick = fileUrl ? `openDrawing(${JSON.stringify(p).replace(/'/g,"&#39;")}, '${fileUrl}')` : `openDrawing(${JSON.stringify(p).replace(/'/g,"&#39;")})`;
+  return `<div class="drawing-thumb" title="${file ? 'Open uploaded drawing' : 'No file uploaded, showing sketch'}" onclick="${onclick}">${partDrawingSvg(p,false)}</div><div class="drawing-meta">${file ? '📄 File' : 'Sketch'}</div>`;
+}
+
 function renderParts(){
   const q=norm($('partQ')?.value||''), f=$('partF')?.value||'';
   let a=DB.parts.filter(p=>(!q||norm([p.part_no,p.description,p.material,p.specification].join(' ')).includes(q))&&(!f||(f==='yes'?p.match_score>=60:p.match_score<60)));
-  let h='<table><tr><th>Part</th><th>2D Drawing</th><th>Description</th><th>Qty</th><th>Material</th><th>Spec</th><th>Weight kg</th><th>Match</th><th>Alibaba</th><th>USD/kg</th><th>Manual material ETB</th></tr>';
-  a.forEach(p=>{const i=DB.parts.indexOf(p); h+=`<tr><td><input value="${escapeHtml(p.part_no)}" onchange="updPart(${i},'part_no',this.value)"></td><td class="drawing-cell">${drawingButton(p)}</td><td><input value="${escapeHtml(p.description||'')}" onchange="updPart(${i},'description',this.value)"></td><td><input type="number" value="${p.qty}" onchange="updPart(${i},'qty',this.value)"></td><td><input value="${escapeHtml(p.material||'')}" onchange="updPart(${i},'material',this.value)"></td><td><input value="${escapeHtml(p.specification||'')}" onchange="updPart(${i},'specification',this.value)"></td><td><input type="number" value="${p.weight_kg||0}" onchange="updPart(${i},'weight_kg',this.value)"></td><td><span class="badge ${p.match_score>=60?'ok':'warn'}">${p.match_score||0}%</span></td><td><button class="btn sm" onclick="searchAlibaba(${i})">Search</button></td><td><input type="number" step=".001" value="${p.material_price_usd_kg||0}" onchange="updPart(${i},'material_price_usd_kg',this.value)"></td><td><input type="number" value="${p.manual_material_cost||0}" onchange="updPart(${i},'manual_material_cost',this.value)"></td></tr>`;});
+  let h='<table><tr><th>Part</th><th>Drawing</th><th>Description</th><th>Qty</th><th>Material</th><th>Mat.Type</th><th>Mat.Profile</th><th>Blank Size</th><th>Drawing No.</th><th>Spec</th><th>Weight kg</th><th>Match</th><th>Alibaba</th><th>USD/kg</th><th>Manual mat. ETB</th></tr>';
+  a.forEach(p=>{const i=DB.parts.indexOf(p); h+=`<tr><td><input value="${escapeHtml(p.part_no)}" onchange="updPart(${i},'part_no',this.value)"></td><td class="drawing-cell">${drawingButton(p)}</td><td><input value="${escapeHtml(p.description||'')}" onchange="updPart(${i},'description',this.value)"></td><td><input type="number" value="${p.qty}" onchange="updPart(${i},'qty',this.value)"></td><td><input value="${escapeHtml(p.material||'')}" onchange="updPart(${i},'material',this.value)"></td><td><input value="${escapeHtml(p.materialType||'')}" onchange="updPart(${i},'materialType',this.value)"></td><td><input value="${escapeHtml(p.materialProfile||'')}" onchange="updPart(${i},'materialProfile',this.value)"></td><td><input value="${escapeHtml(p.blankSize||'')}" onchange="updPart(${i},'blankSize',this.value)"></td><td><input value="${escapeHtml(p.drawingNo||'')}" onchange="updPart(${i},'drawingNo',this.value)"></td><td><input value="${escapeHtml(p.specification||'')}" onchange="updPart(${i},'specification',this.value)"></td><td><input type="number" value="${p.weight_kg||0}" onchange="updPart(${i},'weight_kg',this.value)"></td><td><span class="badge ${p.match_score>=60?'ok':'warn'}">${p.match_score||0}%</span></td><td><button class="btn sm" onclick="searchAlibaba(${i})">Search</button></td><td><input type="number" step=".001" value="${p.material_price_usd_kg||0}" onchange="updPart(${i},'material_price_usd_kg',this.value)"></td><td><input type="number" value="${p.manual_material_cost||0}" onchange="updPart(${i},'manual_material_cost',this.value)"></td></tr>`;});
   $('partsTable').innerHTML=h+'</table>';
 }
 function updPart(i,k,v){DB.parts[i][k]=['qty','weight_kg','material_price_usd_kg','manual_material_cost'].includes(k)?Number(v)||0:v; calc();}
 function searchAlibaba(i){const p=DB.parts[i],q=encodeURIComponent([p.material,p.specification,p.description].filter(Boolean).join(' ')); window.open('https://www.alibaba.com/trade/search?SearchText='+q,'_blank');}
 
-// -------- Materials --------
+// -------- Materials (unchanged) --------
 function renderMaterials(){
   const groups={};
   DB.parts.forEach(p=>{
@@ -293,7 +344,7 @@ function renderMaterials(){
   $('materialsTable').innerHTML=h+'</table>';
 }
 
-// -------- Suppliers --------
+// -------- Suppliers (unchanged) --------
 function addSupplier(){DB.suppliers.push({material:'',supplier:'',country:'',moq:1,price_usd_kg:0,freight_usd:0,duty_pct:0,lead_days:0,selected:false,url:''}); renderSuppliers();}
 function renderSuppliers(){
   let h='<table><tr><th>Material</th><th>Supplier</th><th>Country</th><th>MOQ</th><th>USD/kg</th><th>Freight USD</th><th>Duty %</th><th>Lead days</th><th>Selected</th><th>Link</th></tr>';
@@ -302,16 +353,16 @@ function renderSuppliers(){
 }
 function updSup(i,k,v){DB.suppliers[i][k]=['moq','price_usd_kg','freight_usd','duty_pct','lead_days'].includes(k)?Number(v)||0:v; calc();}
 
-// -------- Operations (MPP) --------
-function addOp(){DB.ops.push({part_no:'',operation:'',setup_min:0,cycle_min:0,qty:1,rate:500,labour_rate:0}); renderOps(); calc();}
+// -------- Operations (MPP) with machine field --------
+function addOp(){DB.ops.push({part_no:'', operation:'', machine:'', setup_min:0, cycle_min:0, qty:1, rate:500, labour_rate:0}); renderOps(); calc();}
 function renderOps(){
-  let h='<table><tr><th>Part</th><th>Operation</th><th>Setup min</th><th>Cycle min</th><th>Qty</th><th>Rate ETB/hr</th><th>Labour ETB/hr</th><th>Cost</th></tr>';
-  DB.ops.forEach((o,i)=>{const c=(Number(o.setup_min)+Number(o.cycle_min)*Number(o.qty))/60*(Number(o.rate)+Number(o.labour_rate)); h+=`<tr><td><input value="${o.part_no}" onchange="updOp(${i},'part_no',this.value)"></td><td><input value="${o.operation}" onchange="updOp(${i},'operation',this.value)"></td><td><input type="number" value="${o.setup_min}" onchange="updOp(${i},'setup_min',this.value)"></td><td><input type="number" value="${o.cycle_min}" onchange="updOp(${i},'cycle_min',this.value)"></td><td><input type="number" value="${o.qty}" onchange="updOp(${i},'qty',this.value)"></td><td><input type="number" value="${o.rate}" onchange="updOp(${i},'rate',this.value)"></td><td><input type="number" value="${o.labour_rate}" onchange="updOp(${i},'labour_rate',this.value)"></td><td>${money(c)}</td></tr>`;});
+  let h='<table><tr><th>Part</th><th>Operation</th><th>Machine</th><th>Setup min</th><th>Cycle min</th><th>Qty</th><th>Rate ETB/hr</th><th>Labour ETB/hr</th><th>Cost</th></tr>';
+  DB.ops.forEach((o,i)=>{const c=(Number(o.setup_min)+Number(o.cycle_min)*Number(o.qty))/60*(Number(o.rate)+Number(o.labour_rate)); h+=`<tr><td><input value="${o.part_no}" onchange="updOp(${i},'part_no',this.value)"></td><td><input value="${o.operation}" onchange="updOp(${i},'operation',this.value)"></td><td><input value="${o.machine||''}" onchange="updOp(${i},'machine',this.value)"></td><td><input type="number" value="${o.setup_min}" onchange="updOp(${i},'setup_min',this.value)"></td><td><input type="number" value="${o.cycle_min}" onchange="updOp(${i},'cycle_min',this.value)"></td><td><input type="number" value="${o.qty}" onchange="updOp(${i},'qty',this.value)"></td><td><input type="number" value="${o.rate}" onchange="updOp(${i},'rate',this.value)"></td><td><input type="number" value="${o.labour_rate}" onchange="updOp(${i},'labour_rate',this.value)"></td><td>${money(c)}</td></tr>`;});
   $('opTable').innerHTML=h+'</table>';
 }
-function updOp(i,k,v){DB.ops[i][k]=Number.isFinite(Number(v))&&k!=='part_no'&&k!=='operation'?Number(v):v; renderOps(); calc();}
+function updOp(i,k,v){DB.ops[i][k]=Number.isFinite(Number(v))&&k!=='part_no'&&k!=='operation'&&k!=='machine'?Number(v):v; renderOps(); calc();}
 
-// -------- Calculation engine (Excel model) --------
+// -------- Calculation engine --------
 function excelFormulaCost(){
   const fx=Number($('fx').value||150), waste=1+Number($('wastePct').value||0)/100;
   const raw=DB.parts.reduce((a,p)=>a+(p.weight_kg*p.qty*(p.material_price_usd_kg||Number($('defaultPrice').value||0))*fx*waste)+Number(p.manual_material_cost||0),0);
@@ -341,16 +392,52 @@ function calc(){
   renderMaterials();
 }
 
-// -------- File upload (Supabase Storage) --------
+// -------- File upload and listing --------
 async function uploadAsset(){
   if(!sb)return alert('Connect Supabase first.');
   const f=$('assetFile').files[0]; if(!f)return alert('Choose a file.');
-  const path=(DB.projectId||'no-project')+'/'+($('filePart').value||'general')+'/'+Date.now()+'_'+f.name.replace(/[^a-zA-Z0-9._-]/g,'_');
-  const {error}=await sb.storage.from('engineering-files').upload(path,f,{upsert:false});
+  const partNo=$('filePart').value.trim();
+  if(!partNo)return alert('Enter a Part ID.');
+  const path=(DB.projectId||'no-project')+'/'+partNo+'/'+Date.now()+'_'+f.name.replace(/[^a-zA-Z0-9._-]/g,'_');
+  const {data:uploadData, error:uploadErr}=await sb.storage.from('engineering-files').upload(path,f,{upsert:false});
+  if(uploadErr)return alert(uploadErr.message);
+  // Get public URL
+  const {data:urlData}=sb.storage.from('engineering-files').getPublicUrl(path);
+  const fileUrl=urlData.publicUrl;
+  const {error:insertErr}=await sb.from('part_files').insert({
+    project_id:DB.projectId,
+    part_no:partNo,
+    storage_path:path,
+    file_name:f.name,
+    mime_type:f.type,
+    file_size:f.size,
+    description:$('fileDesc').value || '',
+    uploaded_by:null
+  });
+  if(insertErr)return alert(insertErr.message);
+  alert('File uploaded and linked to part '+partNo);
+  // Add to DB.files
+  DB.files.push({part_no:partNo, storage_path:path, file_name:f.name, description:$('fileDesc').value});
+  renderFiles();
+  renderParts(); // update drawing buttons
+}
+async function loadFilesForProject(){
+  if(!sb || !DB.projectId)return alert('Open a project first.');
+  const {data,error}=await sb.from('part_files').select('*').eq('project_id',DB.projectId);
   if(error)return alert(error.message);
-  const {error:e2}=await sb.from('part_files').insert({project_id:DB.projectId, part_no:$('filePart').value, storage_path:path, file_name:f.name, description:$('fileDesc').value});
-  if(e2)return alert(e2.message);
-  alert('File uploaded and linked.');
+  DB.files=data||[];
+  renderFiles();
+  renderParts();
+}
+function renderFiles(){
+  if(!DB.files.length){$('assetList').innerHTML='<p class="muted">No files uploaded for this project.</p>'; return;}
+  let h='<div class="tablewrap"><table><tr><th>Part No.</th><th>File Name</th><th>Description</th><th>URL</th></tr>';
+  DB.files.forEach(f=>{
+    const url=sb?.storage.from('engineering-files').getPublicUrl(f.storage_path).publicUrl || '#';
+    h+=`<tr><td>${f.part_no||''}</td><td>${f.file_name}</td><td>${f.description||''}</td><td><a href="${url}" target="_blank">View</a></td></tr>`;
+  });
+  h+='</table></div>';
+  $('assetList').innerHTML=h;
 }
 
 // -------- Local storage backup --------
@@ -359,7 +446,7 @@ function saveLocal(){
   alert('Offline copy saved.');
 }
 
-// -------- V6-specific helpers --------
+// -------- V6 helpers --------
 async function refreshV6Workflow(){
   if(!DB.projectId){$('workflowMsg').style.display='block'; $('workflowMsg').textContent='Open or save a project first.'; return;}
   try{
@@ -387,7 +474,7 @@ window.addEventListener('load', ()=>{
       if(data.fields){ $('projectName').value=data.fields.projectName||''; $('estimateNo').value=data.fields.estimateNo||''; $('customer').value=data.fields.customer||''; $('machineQty').value=data.fields.machineQty||1; $('fx').value=data.fields.fx||150; }
     }catch(e){/* ignore */ }
   }
-  calc(); renderMapping(); renderPreview(); renderParts(); renderMaterials(); renderSuppliers(); renderOps();
+  calc(); renderMapping(); renderPreview(); renderParts(); renderMaterials(); renderSuppliers(); renderOps(); renderFiles();
 });
 </script>
 </body>
