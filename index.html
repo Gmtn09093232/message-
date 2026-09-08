@@ -3,12 +3,15 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Engineering Cost Estimator V6 – Drawing‑First</title>
+<title>Engineering Cost Estimator V6 – Auto OCR</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-<script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
+<!-- pdf.js for rendering PDF pages -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<!-- Tesseract.js for OCR -->
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 <style>
-/* -------- same as before -------- */
+/* -------- same as before, with minor additions for progress -------- */
 :root{--nav:#0b1d33;--nav2:#112a47;--blue:#1683f5;--blue2:#0d6efd;--bg:#f3f6fa;--card:#fff;--line:#e2e8f0;--muted:#667085;--good:#16a36a;--warn:#f59e0b;--bad:#ef4444;--purple:#7357e8;--shadow:0 3px 14px rgba(15,35,60,.07)}
 *{box-sizing:border-box}body{margin:0;background:var(--bg);font:14px Inter,Arial,sans-serif;color:#172033}
 header{height:64px;background:linear-gradient(90deg,#0b1d33,#12355a);color:#fff;padding:10px 24px 10px 24px;position:fixed;left:0;right:0;top:0;z-index:50;display:flex;align-items:center;gap:20px;box-shadow:0 2px 12px rgba(0,0,0,.15)}
@@ -22,10 +25,12 @@ label{display:block;font-weight:700;font-size:12px;color:#56657a;margin:8px 0 5p
 @media(max-width:1200px){.dashboard-grid{grid-template-columns:1fr 1fr}.quick{grid-template-columns:repeat(4,1fr)}}@media(max-width:900px){header{padding-left:10px}.brand{width:auto}.brand small{display:none}.topsearch{display:none}nav#nav{width:64px;padding:10px 7px}nav button{font-size:0;text-align:center;padding:12px 5px}nav button:before{margin:0;width:auto;font-size:17px}main{padding-left:80px}.g2,.g3,.g4,.dashboard-grid{grid-template-columns:1fr}.projecthero{grid-template-columns:1fr}.projectphoto{width:100%;height:160px}.hero-meta{grid-template-columns:repeat(2,1fr)}}
 @media print{header,nav,.no-print{display:none!important}.page{display:block!important}main{padding:0}.card{box-shadow:none}}
 .drawing-thumb{width:92px;height:68px;border:1px solid #d8e1ec;border-radius:8px;background:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer;overflow:hidden}.drawing-thumb svg{width:100%;height:100%}.drawing-cell{min-width:118px}.drawing-meta{font-size:10px;color:#64748b;text-align:center;margin-top:3px}.drawing-modal{position:fixed;inset:0;background:rgba(6,20,38,.72);z-index:9999;display:none;align-items:center;justify-content:center;padding:24px}.drawing-modal.show{display:flex}.drawing-panel{background:#fff;border-radius:16px;width:min(900px,96vw);max-height:92vh;overflow:auto;box-shadow:0 24px 70px rgba(0,0,0,.3)}.drawing-panel-head{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid #e5e7eb}.drawing-canvas{padding:20px;background:#f5f7fa}.drawing-canvas iframe{width:100%;height:55vh;border:1px solid #cbd5e1;background:#fff}.drawing-canvas svg{display:block;width:100%;height:auto;max-height:55vh;background:#fff;border:1px solid #cbd5e1}.drawing-info{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;padding:16px 20px}.drawing-info div{background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:9px}.drawing-info small{display:block;color:#64748b}.drawing-info b{font-size:13px}.drawing-actions{display:flex;gap:10px;padding:12px 20px;border-top:1px solid #e2e8f0;background:#fafbfc}@media(max-width:700px){.drawing-info{grid-template-columns:repeat(2,1fr)}}
+/* progress bar */
+.progress-bar{border:1px solid #cbd5e1;border-radius:20px;height:20px;background:#e9eef6;margin:12px 0;overflow:hidden}.progress-bar .fill{height:100%;width:0%;background:linear-gradient(90deg,#1683f5,#0d6efd);border-radius:20px;transition:width 0.3s}
 </style>
 </head>
 <body>
-<header><div class="brand"><div class="brandmark">⚙</div><div><h1>Engineering Cost Estimator V6</h1><small>Multi‑Page PDF – Auto BOQ/MPP</small></div></div><div class="topsearch"><span>⌕</span><input placeholder="Search projects, parts, materials, suppliers..."></div><div class="topuser"><span>🔔</span><div class="avatar">A</div><div><b>Admin</b><br><small>System Administrator</small></div><span>⌄</span></div></header>
+<header><div class="brand"><div class="brandmark">⚙</div><div><h1>Engineering Cost Estimator V6</h1><small>Auto OCR – Upload PDF, Extract BOQ/MPP</small></div></div><div class="topsearch"><span>⌕</span><input placeholder="Search projects, parts, materials, suppliers..."></div><div class="topuser"><span>🔔</span><div class="avatar">A</div><div><b>Admin</b><br><small>System Administrator</small></div><span>⌄</span></div></header>
 <nav id="nav">
 <button class="active" onclick="page('dash',this)">Dashboard</button><button onclick="page('project',this)">Projects</button><button onclick="page('drawingUpload',this)">📐 Upload Drawing</button><button onclick="page('parts',this)">Parts</button><button onclick="page('boq',this)">BOQ</button><button onclick="page('process',this)">MPP</button><button onclick="page('materials',this)">Materials</button><button onclick="page('suppliers',this)">Suppliers</button><button onclick="page('estimate',this)">Cost</button><button onclick="page('files',this)">Files</button><button onclick="page('settings',this)">Settings</button>
 <div class="sidebar-status"><b>V6.0.0</b><br><span class="online"></span>System Online<br><br><span>▰ Powered by Supabase / PostgreSQL</span></div></nav>
@@ -55,7 +60,7 @@ label{display:block;font-weight:700;font-size:12px;color:#56657a;margin:8px 0 5p
   <div class="card"><div class="section-head"><h2>Cost Summary</h2><span class="mini-link">Details</span></div><div id="summary"><p class="muted">No data yet. Upload a drawing or add parts.</p></div></div>
 </div>
 <div>
-  <div class="card"><div class="section-head"><h2>Recent Activity</h2><span class="mini-link">View All</span></div><div class="activity"><div class="activity-icon">📐</div><div><b>Multi‑page PDF uploaded</b><small>Just now</small></div></div></div></div>
+  <div class="card"><div class="section-head"><h2>Recent Activity</h2><span class="mini-link">View All</span></div><div class="activity"><div class="activity-icon">📐</div><div><b>Auto OCR upload</b><small>Just now</small></div></div></div></div>
 </div>
 </section>
 
@@ -69,64 +74,53 @@ label{display:block;font-weight:700;font-size:12px;color:#56657a;margin:8px 0 5p
 
 <!-- Drawing Upload -->
 <section id="drawingUpload" class="page">
-<div class="card"><h2>📐 Upload Drawings – Multi‑Page PDF Supported</h2>
-<p class="muted">Upload <b>multiple files</b> (each becomes one part) or <b>one multi‑page PDF</b> (each page becomes one part).</p>
-<div class="notice">📌 For a multi‑page PDF, the system will detect the number of pages and create a separate Part, BOQ, and MPP for every page.</div>
+<div class="card"><h2>📐 Upload Drawing – Auto OCR Extraction</h2>
+<p class="muted">Upload a PDF – the system will automatically detect title‑block pages, extract <b>PART NAME, DWG NO, QTY, WEIGHT(g), OVERALL SIZE</b> and create Parts, BOQ, and MPP for each.</p>
+<div class="notice">📌 OCR may take a few seconds per page. A progress bar will show the status. Non‑PDF files (images) will use the manual metadata below.</div>
 
 <div class="grid g3">
-  <div><label>DWG NO (optional)</label><input id="drawingNo" placeholder="LSS-T1-15-14-33"></div>
-  <div><label>PART NAME</label><input id="uploadPartName" placeholder="Screw support-2"></div>
-  <div><label>MATERIAL</label><input id="uploadMaterial" placeholder="AISI 1020 plate"></div>
+  <div><label>DWG NO (override)</label><input id="drawingNo" placeholder="Optional manual override"></div>
+  <div><label>PART NAME (override)</label><input id="uploadPartName" placeholder="Manual fallback"></div>
+  <div><label>MATERIAL (override)</label><input id="uploadMaterial" placeholder="Manual fallback"></div>
 </div>
 <div class="grid g3">
-  <div><label>QTY per part</label><input id="uploadQty" type="number" value="2"></div>
-  <div><label>WEIGHT(g) per part</label><input id="uploadWeight" type="number" step="0.01" value="3217.61"></div>
-  <div><label>Scale</label><input id="uploadScale" placeholder="1:3"></div>
+  <div><label>QTY (override)</label><input id="uploadQty" type="number" value="1"></div>
+  <div><label>WEIGHT(g) (override)</label><input id="uploadWeight" type="number" step="0.01" value="0"></div>
+  <div><label>OVERALL SIZE (override)</label><input id="uploadOverall" placeholder="Manual fallback"></div>
 </div>
 <div class="grid g3">
-  <div><label>OVERALL SIZE</label><input id="uploadOverall" placeholder="310x250x10"></div>
-  <div><label>Sheet Title</label><input id="uploadSheetTitle" placeholder="Screw support-2"></div>
-  <div><label>Sheet Size</label><input id="uploadSheetSize" placeholder="A4"></div>
-</div>
-<div class="grid g3">
-  <div><label>Select Files (multiple or single PDF)</label><input id="uploadFile" type="file" accept=".pdf,.jpg,.jpeg,.png,.dwg,.dxf,.svg" multiple></div>
+  <div><label>Select Files (PDF preferred)</label><input id="uploadFile" type="file" accept=".pdf,.jpg,.jpeg,.png,.dwg,.dxf,.svg" multiple></div>
   <div><span id="fileCount" class="muted">0 files selected</span></div>
   <div><span id="pageInfo" class="muted"></span></div>
 </div>
 <div class="actions">
-  <button class="btn green" onclick="uploadDrawingAndGenerate()">⬆ Upload & Generate BOQ/MPP</button>
+  <button class="btn green" onclick="uploadDrawingAndGenerate()">⬆ Upload & Auto‑Extract</button>
   <button class="btn gray" onclick="loadFilesForProject()">Refresh file list</button>
   <button class="btn orange" onclick="refreshAllData()">🔄 Refresh</button>
 </div>
 <div id="uploadStatus" class="muted" style="margin-top:10px;"></div>
+<div class="progress-bar" style="display:none;" id="ocrProgressBar"><div class="fill" id="ocrProgressFill"></div></div>
 </div>
 
 <div class="card"><h2>Uploaded Drawings</h2><div id="assetList"></div></div>
 </section>
 
-<!-- Parts -->
+<!-- Parts, BOQ, MPP, etc. same as before -->
 <section id="parts" class="page"><div class="card"><div class="grid g3"><div><label>Search</label><input id="partQ" oninput="renderParts()"></div><div><label>Filter</label><select id="partF" onchange="renderParts()"><option value="">All</option><option value="yes">Matched</option><option value="no">Unmatched</option></select></div><div><label>Actions</label><div class="actions"><button class="btn" onclick="addPart()">+ Part</button></div></div></div></div><div class="card"><div id="partsTable" class="tablewrap"></div></div></section>
 
-<!-- BOQ -->
 <section id="boq" class="page"><div class="card"><h2>Bill of Quantities (Auto‑generated)</h2><div class="actions"><button class="btn" onclick="addBoqRow()">+ Add BOQ Row</button></div></div><div class="card"><div id="boqTable" class="tablewrap"></div></div></section>
 
-<!-- MPP -->
 <section id="process" class="page"><div class="card"><h2>MPP Manufacturing Operations (Auto‑generated)</h2><div class="actions"><button class="btn" onclick="addOp()">+ Operation</button></div></div><div class="card"><div id="opTable" class="tablewrap"></div></div></section>
 
-<!-- Materials -->
 <section id="materials" class="page"><div class="card"><h2>Materials</h2><div class="grid g4"><div><label>Waste %</label><input id="wastePct" type="number" value="5" onchange="calc()"></div><div><label>Landed %</label><input id="landPct" type="number" value="8" onchange="calc()"></div><div><label>Density kg/m³</label><input id="density" type="number" value="7850" onchange="calc()"></div><div><label>Price USD/kg</label><input id="defaultPrice" type="number" value="1" step=".001" onchange="calc()"></div></div></div><div class="card"><div id="materialsTable" class="tablewrap"></div></div></section>
 
-<!-- Suppliers -->
 <section id="suppliers" class="page"><div class="card"><h2>Supplier comparison</h2><div class="actions"><button class="btn" onclick="addSupplier()">+ Supplier Quote</button></div></div><div class="card"><div id="supplierTable" class="tablewrap"></div></div></section>
 
-<!-- Estimate -->
 <section id="estimate" class="page"><div class="card"><h2>Cost Build‑up</h2>
 <div class="grid g3"><div><label>Material OH %</label><input id="matOH" type="number" value="7" onchange="calc()"></div><div><label>Factory OH %</label><input id="factoryOH" type="number" value="0" onchange="calc()"></div><div><label>Office OH %</label><input id="officeOH" type="number" value="0" onchange="calc()"></div><div><label>Service ETB</label><input id="service" type="number" value="0" onchange="calc()"></div><div><label>Profit %</label><input id="profit" type="number" value="10" onchange="calc()"></div><div><label>Contingency %</label><input id="contingency" type="number" value="0" onchange="calc()"></div></div><br><div id="estimateTable" class="tablewrap"></div></div></section>
 
-<!-- Files -->
 <section id="files" class="page"><div class="card"><h2>All Files</h2><div id="allFilesList"></div></div></section>
 
-<!-- Settings -->
 <section id="settings" class="page">
 <div class="card"><h2>Supabase connection</h2>
 <div class="notice">Use your project's Supabase URL and publishable/anon key.</div>
@@ -135,8 +129,8 @@ label{display:block;font-weight:700;font-size:12px;color:#56657a;margin:8px 0 5p
 <div class="actions"><button class="btn green" onclick="connect()">Connect</button><button class="btn gray" onclick="testConnection()">Test Database</button></div>
 <p id="connMsg" class="muted"></p>
 </div>
-<div class="card"><h2>Database Schema Fix</h2>
-<p class="muted">If BOQ rows are not being created, run this SQL in your Supabase SQL Editor:</p>
+<div class="card"><h2>Database Schema</h2>
+<p class="muted">Ensure your tables have the required columns:</p>
 <textarea id="fixSql" rows="8" style="font-family:monospace;font-size:12px;width:100%;background:#f5f7fa;border:1px solid #cbd5e1;border-radius:6px;padding:8px;">ALTER TABLE boq_items ADD COLUMN IF NOT EXISTS project_id UUID REFERENCES projects(id);
 ALTER TABLE boq_items ADD COLUMN IF NOT EXISTS material_type TEXT;
 ALTER TABLE boq_items ADD COLUMN IF NOT EXISTS material_profile TEXT;
@@ -250,189 +244,229 @@ async function refreshAllData(){
   } catch(e){ console.error('Refresh error:', e); alert('Refresh error: '+e.message); }
 }
 
-// -------- Helper: get PDF page count --------
-async function getPdfPageCount(file) {
-  try {
-    const arrayBuffer = await file.arrayBuffer();
-    const pdf = await PDFLib.PDFDocument.load(arrayBuffer);
-    return pdf.getPageCount();
-  } catch(e) {
-    console.warn('Failed to read PDF page count:', e);
-    return 1; // fallback
+// -------- OCR extraction from PDF --------
+async function extractMetadataFromPage(pageNum, page) {
+  // Render page to canvas
+  const viewport = page.getViewport({ scale: 2.0 });
+  const canvas = document.createElement('canvas');
+  const context = canvas.getContext('2d');
+  canvas.width = viewport.width;
+  canvas.height = viewport.height;
+  await page.render({ canvasContext: context, viewport: viewport }).promise;
+  
+  // Run Tesseract OCR on the canvas
+  const { data: { text } } = await Tesseract.recognize(canvas, 'eng', {
+    logger: m => {
+      if (m.status === 'recognizing text') {
+        // update progress if needed
+      }
+    }
+  });
+  
+  // Parse the text to find title block fields
+  const lines = text.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+  const fullText = lines.join(' ');
+  
+  // Helper to extract value after a label (case‑insensitive)
+  function extract(label) {
+    const regex = new RegExp(label + '\\s*[:：]?\\s*([^\\n\\r]+)', 'i');
+    const match = fullText.match(regex);
+    if (match) return match[1].trim();
+    // Try with label on a separate line
+    for (let i=0; i<lines.length; i++) {
+      if (lines[i].toLowerCase().includes(label.toLowerCase())) {
+        // look at next line
+        if (i+1 < lines.length && !lines[i+1].match(/^(PART NAME|DWG NO|QTY|WEIGHT|OVERALL|MATERIAL|SCALE|SHEET)/i)) {
+          return lines[i+1].trim();
+        }
+      }
+    }
+    return '';
   }
+  
+  // Extract fields
+  const partName = extract('PART NAME') || extract('PART') || '';
+  const dwgNo = extract('DWG NO') || extract('DWG') || '';
+  const qty = parseInt(extract('QTY')) || 1;
+  const weight = parseFloat(extract('WEIGHT').replace(/[, ]/g, '')) || 0;
+  const overall = extract('OVERALL SIZE') || extract('OVERALL') || '';
+  const material = extract('MATERIAL') || '';
+  const scale = extract('SCALE') || '';
+  const sheetNo = extract('SHEET No') || extract('SHEET') || '';
+  
+  // Only return if we have at least a part name or dwg no
+  if (partName || dwgNo) {
+    return { partName, dwgNo, qty, weight, overall, material, scale, sheetNo };
+  }
+  return null;
 }
 
-// -------- Multi‑file / multi‑page upload with BOQ retry logic --------
+// -------- Main upload with OCR --------
 async function uploadDrawingAndGenerate(){
   if(!sb) return alert('Connect Supabase first.');
   if(!DB.projectId) return alert('Please save or open a project first.');
   
   const files = $('uploadFile').files;
-  if(!files.length) return alert('Select at least one drawing file.');
+  if(!files.length) return alert('Select at least one file.');
   
-  const partNameBase = $('uploadPartName').value.trim() || 'Part';
-  const material = $('uploadMaterial').value.trim() || 'AISI 1020';
-  const qty = Number($('uploadQty').value) || 1;
-  const weight = Number($('uploadWeight').value) || 0;
-  const scale = $('uploadScale').value.trim() || '';
-  const overall = $('uploadOverall').value.trim() || '';
-  const sheetTitle = $('uploadSheetTitle').value.trim() || partNameBase;
-  const sheetSize = $('uploadSheetSize').value.trim() || 'A4';
-  const drawingNoBase = $('drawingNo').value.trim() || '';
-  
-  // Get existing part numbers to avoid conflicts
-  const {data:existingParts} = await sb.from('parts').select('part_no').eq('project_id', DB.projectId);
-  const usedNumbers = new Set(existingParts.map(p => p.part_no));
-  let nextNum = existingParts.reduce((max, p) => {
-    const match = p.part_no.match(/^P-(\d+)$/);
-    return match ? Math.max(max, parseInt(match[1])) : max;
-  }, 0) + 1;
+  const statusEl = $('uploadStatus');
+  const progressBar = $('ocrProgressBar');
+  const progressFill = $('ocrProgressFill');
   
   let totalPartsCreated = 0;
-  let boqErrors = [];
-  const statusEl = $('uploadStatus');
+  let allErrors = [];
   
   // Process each file
   for(let fi=0; fi<files.length; fi++){
     const file = files[fi];
-    let pageCount = 1;
-    if(file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf')) {
-      pageCount = await getPdfPageCount(file);
-    }
-    for(let pg=0; pg<pageCount; pg++){
-      let partNo;
-      if(pageCount > 1) {
-        const suffix = String(pg+1).padStart(2, '0');
-        partNo = 'P-' + String(nextNum++).padStart(4, '0') + '-' + suffix;
-      } else {
-        partNo = 'P-' + String(nextNum++).padStart(4, '0');
-      }
-      while(usedNumbers.has(partNo)){
-        partNo = 'P-' + String(nextNum++).padStart(4, '0') + (pageCount>1?'-'+String(pg+1).padStart(2,'0'):'');
-        usedNumbers.add(partNo);
-      }
-      usedNumbers.add(partNo);
+    const isPdf = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
+    let extractedParts = [];
+    
+    if (isPdf) {
+      // Load PDF using pdf.js
+      const arrayBuffer = await file.arrayBuffer();
+      const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
+      const pdf = await loadingTask.promise;
+      const totalPages = pdf.numPages;
+      $('pageInfo').textContent = `📄 PDF has ${totalPages} pages – scanning for title blocks...`;
+      progressBar.style.display = 'block';
       
-      const sheetNo = pageCount > 1 ? (pg+1)+'/'+pageCount : '1/1';
-      const meta = {
-        sheetNo: sheetNo,
-        title: sheetTitle + (pageCount>1?' (p'+ (pg+1)+')':''),
-        weight: weight,
-        scale: scale,
-        overall: overall,
-        sheetSize: sheetSize,
-        drawingNo: drawingNoBase || file.name,
-        partName: partNameBase,
-        material: material,
-        qty: qty,
-        page: pg+1,
-        totalPages: pageCount
+      for (let pg=1; pg<=totalPages; pg++) {
+        progressFill.style.width = ((pg / totalPages) * 100) + '%';
+        statusEl.textContent = `⏳ OCR page ${pg}/${totalPages}...`;
+        try {
+          const page = await pdf.getPage(pg);
+          const meta = await extractMetadataFromPage(pg, page);
+          if (meta) {
+            // If some fields missing, use manual overrides from form as fallback
+            if (!meta.partName) meta.partName = $('uploadPartName').value.trim() || 'Part';
+            if (!meta.dwgNo) meta.dwgNo = $('drawingNo').value.trim() || '';
+            if (!meta.material) meta.material = $('uploadMaterial').value.trim() || 'AISI 1020';
+            if (!meta.qty) meta.qty = Number($('uploadQty').value) || 1;
+            if (!meta.weight) meta.weight = Number($('uploadWeight').value) || 0;
+            if (!meta.overall) meta.overall = $('uploadOverall').value.trim() || '';
+            // Add page info
+            meta.pageNum = pg;
+            meta.totalPages = totalPages;
+            meta.sheetNo = meta.sheetNo || `${pg}/${totalPages}`;
+            extractedParts.push(meta);
+          }
+        } catch(e) {
+          console.warn('Error processing page', pg, e);
+        }
+      }
+      progressBar.style.display = 'none';
+      statusEl.textContent = `✅ Found ${extractedParts.length} title‑block pages out of ${totalPages}.`;
+    } else {
+      // Non‑PDF: use manual metadata (if any) or default
+      const partName = $('uploadPartName').value.trim() || file.name.replace(/\.[^.]+$/, '');
+      const dwgNo = $('drawingNo').value.trim() || '';
+      const material = $('uploadMaterial').value.trim() || 'AISI 1020';
+      const qty = Number($('uploadQty').value) || 1;
+      const weight = Number($('uploadWeight').value) || 0;
+      const overall = $('uploadOverall').value.trim() || '';
+      extractedParts.push({ partName, dwgNo, material, qty, weight, overall, scale: '', sheetNo: '1/1', pageNum: 1, totalPages: 1 });
+    }
+    
+    // Now create records for each extracted part
+    for (const meta of extractedParts) {
+      const partNo = generatePartNumber();
+      
+      // Build metadata for storage
+      const fileMetadata = {
+        sheetNo: meta.sheetNo || '1/1',
+        title: meta.partName,
+        weight: meta.weight,
+        scale: meta.scale || '',
+        overall: meta.overall,
+        sheetSize: 'A4',
+        drawingNo: meta.dwgNo,
+        partName: meta.partName,
+        material: meta.material,
+        qty: meta.qty,
+        page: meta.pageNum || 1,
+        totalPages: meta.totalPages || 1,
+        sourceFile: file.name
       };
       
-      // Upload file (unique path per part)
-      const filePath = (DB.projectId || 'no-project') + '/' + partNo + '/' + Date.now() + '_' + file.name.replace(/[^a-zA-Z0-9._-]/g,'_');
-      const {error:uploadErr} = await sb.storage.from('engineering-files').upload(filePath, file, {upsert:false});
-      if(uploadErr){ console.warn('Upload error for '+file.name+':', uploadErr); continue; }
-      
-      // Insert file record
-      const {error:insertFileErr} = await sb.from('part_files').insert({
-        project_id: DB.projectId,
-        part_no: partNo,
-        storage_path: filePath,
-        file_name: file.name,
-        mime_type: file.type,
-        file_size: file.size,
-        description: (drawingNoBase || file.name) + ' - ' + partNameBase,
-        metadata: meta,
-        uploaded_by: null
-      });
-      if(insertFileErr){ console.warn('File record error:', insertFileErr); continue; }
+      // Upload file (if PDF, we upload the whole file once, but we'll store the same file for each part)
+      // To avoid duplication, we could upload once per file, but for simplicity we upload each time with a unique path.
+      // This will create duplicates in storage. Better: upload once and reference same path.
+      // We'll check if file already uploaded by name and size.
+      // Simpler: upload once per file and reuse path.
+      let storagePath = null;
+      // Try to find existing file in DB.files with same name and size
+      const existingFile = DB.files.find(f => f.file_name === file.name && f.file_size === file.size);
+      if (existingFile) {
+        storagePath = existingFile.storage_path;
+      } else {
+        // Upload new file
+        const path = (DB.projectId || 'no-project') + '/' + partNo + '/' + Date.now() + '_' + file.name.replace(/[^a-zA-Z0-9._-]/g,'_');
+        const {error:uploadErr} = await sb.storage.from('engineering-files').upload(path, file, {upsert:false});
+        if(uploadErr){ 
+          allErrors.push(`Upload error for ${file.name}: ${uploadErr.message}`);
+          continue; 
+        }
+        storagePath = path;
+        // Insert file record (once)
+        const {error:insertFileErr} = await sb.from('part_files').insert({
+          project_id: DB.projectId,
+          part_no: partNo,
+          storage_path: path,
+          file_name: file.name,
+          mime_type: file.type,
+          file_size: file.size,
+          description: (meta.dwgNo || '') + ' - ' + meta.partName,
+          metadata: fileMetadata,
+          uploaded_by: null
+        });
+        if(insertFileErr){ 
+          allErrors.push(`File record error: ${insertFileErr.message}`);
+          continue;
+        }
+        DB.files.push({ part_no: partNo, storage_path: path, file_name: file.name, metadata: fileMetadata });
+      }
       
       // Insert Part
       const partData = {
         project_id: DB.projectId,
         part_no: partNo,
-        description: partNameBase + (pageCount>1?' (p'+ (pg+1)+')':''),
-        qty: qty,
-        material: material,
-        specification: overall || '',
-        weight_kg: weight || 0,
+        description: meta.partName,
+        qty: meta.qty,
+        material: meta.material,
+        specification: meta.overall || '',
+        weight_kg: meta.weight || 0,
         process: 'Fabrication',
         material_price_usd_kg: 0,
         manual_material_cost: 0,
-        drawing_no: drawingNoBase || file.name,
-        geometry: { type: inferDrawingType({description: partNameBase, specification: overall}) }
+        drawing_no: meta.dwgNo || '',
+        geometry: { type: inferDrawingType({description: meta.partName, specification: meta.overall}) }
       };
       const {error:partErr} = await sb.from('parts').insert(partData);
-      if(partErr){ console.warn('Part insert error:', partErr); continue; }
+      if(partErr){ allErrors.push(`Part insert error for ${partNo}: ${partErr.message}`); continue; }
       
-      // Insert BOQ row with fallback
+      // Insert BOQ row
       const boqData = {
         project_id: DB.projectId,
         revision_id: DB.revisionId || null,
         item_no: partNo,
-        description: partNameBase + (pageCount>1?' (p'+ (pg+1)+')':''),
-        qty: qty,
-        material: material,
-        specification: overall || '',
-        drawing_no: drawingNoBase || file.name,
-        weight: weight,
+        description: meta.partName,
+        qty: meta.qty,
+        material: meta.material,
+        specification: meta.overall || '',
+        drawing_no: meta.dwgNo || '',
+        weight: meta.weight || 0,
         material_type: 'Steel',
         material_profile: 'Plate',
-        blank_size: overall || ''
+        blank_size: meta.overall || ''
       };
-      
-      // Try inserting with all columns; if fails, retry with base columns only
-      let boqOk = false;
       try {
         const {error:boqErr} = await sb.from('boq_items').insert(boqData);
-        if(!boqErr) {
-          boqOk = true;
-        } else {
-          console.warn('BOQ insert error (full):', boqErr);
-          // Retry with minimal columns
-          const minimalBoq = {
-            item_no: partNo,
-            description: partNameBase + (pageCount>1?' (p'+ (pg+1)+')':''),
-            qty: qty,
-            material: material,
-            specification: overall || '',
-            drawing_no: drawingNoBase || file.name,
-            weight: weight
-          };
-          // Try without project_id if missing
-          try {
-            const {error:retryErr} = await sb.from('boq_items').insert(minimalBoq);
-            if(!retryErr) {
-              boqOk = true;
-            } else {
-              // If still error, try without revision_id too
-              const minimalBoq2 = {
-                item_no: partNo,
-                description: partNameBase + (pageCount>1?' (p'+ (pg+1)+')':''),
-                qty: qty,
-                material: material,
-                specification: overall || '',
-                drawing_no: drawingNoBase || file.name,
-                weight: weight
-              };
-              const {error:retryErr2} = await sb.from('boq_items').insert(minimalBoq2);
-              if(!retryErr2) boqOk = true;
-              else {
-                boqErrors.push(`Part ${partNo}: ${retryErr2.message}`);
-                console.error('BOQ insert completely failed for', partNo, retryErr2);
-              }
-            }
-          } catch(e2) {
-            boqErrors.push(`Part ${partNo}: ${e2.message}`);
-          }
-        }
-      } catch(e) {
-        boqErrors.push(`Part ${partNo}: ${e.message}`);
-      }
+        if(boqErr) console.warn('BOQ insert error:', boqErr);
+      } catch(e){ console.warn('BOQ insert exception:', e); }
       
       // Insert MPP ops
-      const ops = generateMppOperations(partNo, partNameBase, qty);
+      const ops = generateMppOperations(partNo, meta.partName, meta.qty);
       for(const op of ops){
         op.project_id = DB.projectId;
         op.part_no = partNo;
@@ -443,21 +477,35 @@ async function uploadDrawingAndGenerate(){
     }
   }
   
-  // Refresh
+  // Refresh after all
   await refreshAllData();
   
   let msg = `✅ ${totalPartsCreated} parts created.`;
-  if(boqErrors.length) {
-    msg += `\n⚠️ BOQ errors for ${boqErrors.length} rows. Run the SQL fix in Settings -> Database Schema Fix.`;
-    alert(msg + '\n\nErrors:\n' + boqErrors.join('\n'));
-  } else {
-    alert(`✅ ${totalPartsCreated} parts created. BOQ & MPP generated.`);
+  if(allErrors.length) {
+    msg += `\n⚠️ ${allErrors.length} errors occurred (see console).`;
+    console.warn('Errors:', allErrors);
   }
   statusEl.innerHTML = msg;
+  alert(msg);
   
   $('uploadFile').value = '';
   $('fileCount').textContent = '0 files selected';
   $('pageInfo').textContent = '';
+}
+
+// -------- Generate unique part number --------
+function generatePartNumber(){
+  const {data:existingParts} = await sb.from('parts').select('part_no').eq('project_id', DB.projectId);
+  const usedNumbers = new Set(existingParts.map(p => p.part_no));
+  let nextNum = existingParts.reduce((max, p) => {
+    const match = p.part_no.match(/^P-(\d+)$/);
+    return match ? Math.max(max, parseInt(match[1])) : max;
+  }, 0) + 1;
+  let partNo = 'P-' + String(nextNum++).padStart(4, '0');
+  while(usedNumbers.has(partNo)){
+    partNo = 'P-' + String(nextNum++).padStart(4, '0');
+  }
+  return partNo;
 }
 
 // -------- Copy SQL to clipboard --------
@@ -466,15 +514,16 @@ function copySql(){
   navigator.clipboard.writeText(sql).then(() => alert('SQL copied to clipboard!'));
 }
 
-// -------- Show page count when PDF selected --------
+// -------- Show file count and PDF page count --------
 $('uploadFile')?.addEventListener('change', async function(){
   const files = this.files;
-  const count = files.length;
-  $('fileCount').textContent = count + ' file(s) selected';
-  if(count === 1 && files[0].type === 'application/pdf'){
+  $('fileCount').textContent = files.length + ' file(s) selected';
+  if(files.length === 1 && files[0].type === 'application/pdf'){
     try {
-      const pages = await getPdfPageCount(files[0]);
-      $('pageInfo').textContent = '📄 PDF has ' + pages + ' pages – each page will become a part.';
+      const arrayBuffer = await files[0].arrayBuffer();
+      const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
+      const pdf = await loadingTask.promise;
+      $('pageInfo').textContent = '📄 PDF has ' + pdf.numPages + ' pages – will scan each page for title blocks.';
     } catch(e){
       $('pageInfo').textContent = '';
     }
@@ -483,7 +532,7 @@ $('uploadFile')?.addEventListener('change', async function(){
   }
 });
 
-// -------- Helper functions --------
+// -------- Helper functions (inferDrawingType, generateMppOperations) --------
 function inferDrawingType(p){
   const x=norm((p.description||'')+' '+(p.specification||''));
   if(x.includes('plate'))return'plate';
@@ -623,7 +672,7 @@ function drawingButton(p){
   return html;
 }
 
-// -------- Render Parts (with updated headers) --------
+// -------- Render functions (with updated column headers) --------
 function renderParts(){
   const q=norm($('partQ')?.value||''), f=$('partF')?.value||'';
   let a=DB.parts.filter(p=>(!q||norm([p.part_no,p.description,p.material,p.specification].join(' ')).includes(q))&&(!f||(f==='yes'?p.match_score>=60:p.match_score<60)));
@@ -638,7 +687,7 @@ function addPart(){
   renderParts();
 }
 
-// -------- Render BOQ (with updated headers) --------
+// -------- Render BOQ --------
 function renderBoq(){
   let h='<table><tr><th>PART NO</th><th>PART NAME</th><th>QTY</th><th>MATERIAL</th><th>Material Type</th><th>Profile</th><th>OVERALL SIZE</th><th>DWG NO</th><th>WEIGHT(g)</th><th>Actions</th></tr>';
   DB.boq.forEach((row,i)=>{
