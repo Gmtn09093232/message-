@@ -7,6 +7,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <style>
+/* -------- same as before -------- */
 :root{--nav:#0b1d33;--nav2:#112a47;--blue:#1683f5;--blue2:#0d6efd;--bg:#f3f6fa;--card:#fff;--line:#e2e8f0;--muted:#667085;--good:#16a36a;--warn:#f59e0b;--bad:#ef4444;--purple:#7357e8;--shadow:0 3px 14px rgba(15,35,60,.07)}
 *{box-sizing:border-box}body{margin:0;background:var(--bg);font:14px Inter,Arial,sans-serif;color:#172033}
 header{height:64px;background:linear-gradient(90deg,#0b1d33,#12355a);color:#fff;padding:10px 24px 10px 24px;position:fixed;left:0;right:0;top:0;z-index:50;display:flex;align-items:center;gap:20px;box-shadow:0 2px 12px rgba(0,0,0,.15)}
@@ -40,10 +41,21 @@ label{display:block;font-weight:700;font-size:12px;color:#56657a;margin:8px 0 5p
 <!-- Dashboard -->
 <section id="dash" class="page active">
 <div class="card projecthero"><img class="projectphoto" src="/project-steel.jpg" alt="Steel structure project"><div><div class="section-head"><div><span class="badge ok">● In Production</span> <span class="badge">Rev: R03</span><h2 style="display:inline;margin-left:8px">Project: 20 TPH Screw Conveyor</h2></div><button class="btn gray no-print" onclick="page('project',document.querySelectorAll('#nav button')[1])">Edit</button></div><div class="muted">Amhara Metal Industry · Limestone Screw Conveyor.</div><div class="hero-meta"><div><small>Start Date</small><b>2025-08-01</b></div><div><small>End Date</small><b>2025-10-30</b></div><div><small>Estimate</small><b id="heroEstimate">—</b></div><div><small>Revision</small><b>BOQ-R03</b></div></div></div></div>
-<div class="grid g4"><div class="kpi"><span class="muted">BOQ Value</span><b id="kboqValue">ETB 248,500</b></div><div class="kpi"><span class="muted">Material Cost</span><b id="kmat">ETB 91,240</b></div><div class="kpi"><span class="muted">Purchase Cost</span><b id="kpurchase">ETB 103,800</b></div><div class="kpi"><span class="muted">Actual Cost</span><b id="kactualTop">ETB 76,420</b></div></div>
-<div class="dashboard-grid"><div><div class="card"><div class="section-head"><h2>Project Workflow</h2><span class="mini-link">View workflow</span></div><div class="workflow"><div class="step done"><div class="stepicon">✓</div><b>1. Project</b><span>Completed</span></div><div class="step done"><div class="stepicon">✓</div><b>2. Drawing</b><span>Uploaded</span></div><div class="step done"><div class="stepicon">✓</div><b>3. BOQ</b><span>Auto‑generated</span></div><div class="step active"><div class="stepicon">⚙</div><b>4. MPP</b><span>Auto‑generated</span></div><div class="step"><div class="stepicon">⚙</div><b>5. Cost</b><span>Ready</span></div></div></div></div>
-<div><div class="card"><div class="section-head"><h2>Cost Summary</h2><span class="mini-link">Details</span></div><div style="display:flex;gap:18px;align-items:center"><div style="width:125px;height:125px;border-radius:50%;background:conic-gradient(#1683f5 0 37%,#f59e0b 37% 57%,#16a36a 57% 76%,#7357e8 76% 100%);display:grid;place-items:center"><div style="width:75px;height:75px;background:#fff;border-radius:50%;display:grid;place-items:center;text-align:center;font-weight:800;font-size:12px">ETB<br>248,500</div></div><div class="muted">🔵 Material 36.7%<br>🟠 Manufacturing 19.6%<br>🟢 Purchased 41.8%<br>🟣 Actual 30.8%<br>🔹 Margin 17.8%</div></div></div></div>
-<div><div class="card"><div class="section-head"><h2>Recent Activity</h2><span class="mini-link">View All</span></div><div class="activity"><div class="activity-icon">📐</div><div><b>Drawing uploaded for Screw support-2</b><small>10 min ago</small></div></div><div class="activity"><div class="activity-icon">▣</div><div><b>BOQ row auto‑generated</b><small>10 min ago</small></div></div><div class="activity"><div class="activity-icon">⚙</div><div><b>MPP ops auto‑generated</b><small>10 min ago</small></div></div></div></div></div>
+<div class="grid g4">
+  <div class="kpi"><span class="muted">BOQ Value</span><b id="kboqValue">ETB 0</b></div>
+  <div class="kpi"><span class="muted">Material Cost</span><b id="kmat">ETB 0</b></div>
+  <div class="kpi"><span class="muted">Purchase Cost</span><b id="kpurchase">ETB 0</b></div>
+  <div class="kpi"><span class="muted">Selling Price</span><b id="ksell">ETB 0.00</b></div>
+</div>
+<div class="dashboard-grid"><div>
+  <div class="card"><div class="section-head"><h2>Project Workflow</h2><span class="mini-link">View workflow</span></div><div class="workflow"><div class="step done"><div class="stepicon">✓</div><b>1. Project</b><span>Completed</span></div><div class="step done"><div class="stepicon">✓</div><b>2. Drawing</b><span>Uploaded</span></div><div class="step done"><div class="stepicon">✓</div><b>3. BOQ</b><span>Auto‑generated</span></div><div class="step active"><div class="stepicon">⚙</div><b>4. MPP</b><span>Auto‑generated</span></div><div class="step"><div class="stepicon">⚙</div><b>5. Cost</b><span>Ready</span></div></div></div>
+</div>
+<div>
+  <div class="card"><div class="section-head"><h2>Cost Summary</h2><span class="mini-link">Details</span></div><div id="summary"><p class="muted">No data yet. Upload a drawing or add parts.</p></div></div>
+</div>
+<div>
+  <div class="card"><div class="section-head"><h2>Recent Activity</h2><span class="mini-link">View All</span></div><div class="activity"><div class="activity-icon">📐</div><div><b>Drawing uploaded for Screw support-2</b><small>10 min ago</small></div></div><div class="activity"><div class="activity-icon">▣</div><div><b>BOQ row auto‑generated</b><small>10 min ago</small></div></div><div class="activity"><div class="activity-icon">⚙</div><div><b>MPP ops auto‑generated</b><small>10 min ago</small></div></div></div></div>
+</div>
 </section>
 
 <!-- Project -->
@@ -215,7 +227,8 @@ async function refreshAllData(){
     const suppliers=await V6Brain.data('suppliers'); DB.suppliers=suppliers.data||[];
     
     renderParts(); renderBoq(); renderOps(); renderSuppliers(); renderFiles(); calc();
-    $('uploadStatus').innerHTML='✅ Data refreshed from database.';
+    const statusEl = $('uploadStatus');
+    if(statusEl) statusEl.innerHTML = '✅ Data refreshed from database.';
   } catch(e){ 
     console.error('Refresh error:', e);
     alert('Refresh error: '+e.message); 
@@ -391,7 +404,8 @@ async function uploadDrawingAndGenerate(){
   // 7. Refresh local data
   await refreshAllData();
   
-  $('uploadStatus').innerHTML = '✅ Drawing uploaded – Part, BOQ, and MPP generated/updated successfully!';
+  const statusEl = $('uploadStatus');
+  if(statusEl) statusEl.innerHTML = '✅ Drawing uploaded – Part, BOQ, and MPP generated/updated successfully!';
   alert('✅ Drawing uploaded!\nPart: '+partNo+'\nBOQ row updated/created\nMPP operations updated');
   
   // Clear form
@@ -624,7 +638,7 @@ function renderOps(){
 function updOp(i,k,v){DB.ops[i][k]=Number.isFinite(Number(v))&&k!=='part_no'&&k!=='operation'&&k!=='machine'?Number(v):v; renderOps(); calc();}
 function deleteOp(i){DB.ops.splice(i,1); renderOps(); calc();}
 
-// -------- Calculation engine --------
+// -------- Calculation engine (with null‑safe element updates) --------
 function excelFormulaCost(){
   const fx=Number($('fx').value||150), waste=1+Number($('wastePct').value||0)/100;
   const raw=DB.parts.reduce((a,p)=>a+(p.weight_kg*p.qty*(p.material_price_usd_kg||Number($('defaultPrice').value||0))*fx*waste)+Number(p.manual_material_cost||0),0);
@@ -640,14 +654,42 @@ function excelFormulaCost(){
   const contingency=H19*Number($('contingency').value||0)/100;
   return {H10,H13,directLabour,machining,service,factory,office,H19,profit,contingency,total:H19+profit+contingency};
 }
+
 function calc(){
   const e=excelFormulaCost();
   DB.estimate=e;
-  $('ksell').textContent=money(e.total);
-  const rows=[['H10 Raw materials',e.H10],['H13 Materials overhead',e.H13],['Direct labour',e.directLabour],['Machining',e.machining],['Service',e.service],['Factory overhead',e.factory],['Office overhead',e.office],['H19 Manufacturing cost',e.H19],['Profit',e.profit],['Selling price',e.total]];
+  
+  // Update selling price KPI if it exists
+  const sellEl = $('ksell');
+  if(sellEl) sellEl.textContent = money(e.total);
+  
+  // Update hero estimate if present
+  const heroEst = $('heroEstimate');
+  if(heroEst) heroEst.textContent = money(e.total);
+  
+  // Build summary table
+  const rows=[
+    ['Raw materials', e.H10],
+    ['Materials overhead', e.H13],
+    ['Direct labour', e.directLabour],
+    ['Machining', e.machining],
+    ['Service', e.service],
+    ['Factory overhead', e.factory],
+    ['Office overhead', e.office],
+    ['Manufacturing cost', e.H19],
+    ['Profit', e.profit],
+    ['Selling price', e.total]
+  ];
   let html='<table><tr><th>Item</th><th class="right">ETB</th></tr>'+rows.map(r=>`<tr><td>${r[0]}</td><td class="right">${money(r[1])}</td></tr>`).join('')+'</table>';
-  $('summary').innerHTML=html;
-  if($('estimateTable')) $('estimateTable').innerHTML=html;
+  
+  // Update dashboard summary if present
+  const summaryEl = $('summary');
+  if(summaryEl) summaryEl.innerHTML = html;
+  
+  // Update estimate tab table if present
+  const estTable = $('estimateTable');
+  if(estTable) estTable.innerHTML = html;
+  
   renderMaterials();
 }
 
