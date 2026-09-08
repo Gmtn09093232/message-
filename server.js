@@ -492,7 +492,6 @@ app.get('/*splat', (req, res) => {
 });
 
 // --- Start server ---
-const PORT = process.env.PORT || 3000;
 app.listen(PORT, ()=>{
   console.log(`Engineering Cost Estimator V6 running on http://localhost:${PORT}`);
   console.log('Workflow: Project -> BOQ -> MPP -> Materials -> Procurement -> Production -> Actual Cost');
