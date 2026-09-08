@@ -1,483 +1,394 @@
-'use strict';
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Engineering Cost Estimator V6</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<style>
+:root{--nav:#0b1d33;--nav2:#112a47;--blue:#1683f5;--blue2:#0d6efd;--bg:#f3f6fa;--card:#fff;--line:#e2e8f0;--muted:#667085;--good:#16a36a;--warn:#f59e0b;--bad:#ef4444;--purple:#7357e8;--shadow:0 3px 14px rgba(15,35,60,.07)}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);font:14px Inter,Arial,sans-serif;color:#172033}
+header{height:64px;background:linear-gradient(90deg,#0b1d33,#12355a);color:#fff;padding:10px 24px 10px 24px;position:fixed;left:0;right:0;top:0;z-index:50;display:flex;align-items:center;gap:20px;box-shadow:0 2px 12px rgba(0,0,0,.15)}
+header h1{margin:0;font-size:20px;line-height:1.1}header small{display:block;color:#c8d5e6;margin-top:3px;font-size:11px}.brand{width:320px;display:flex;align-items:center;gap:12px}.brandmark{width:38px;height:38px;border-radius:11px;background:#fff;color:#147ce5;display:grid;place-items:center;font-size:23px;font-weight:900}.topsearch{flex:1;max-width:650px;position:relative}.topsearch input{height:38px;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.18);color:#fff;padding-left:40px;border-radius:7px}.topsearch span{position:absolute;left:14px;top:9px;color:#d7e4f2}.topuser{margin-left:auto;display:flex;align-items:center;gap:10px;font-size:12px}.avatar{width:34px;height:34px;border-radius:50%;background:#e7edf6;color:#0b2b4e;display:grid;place-items:center;font-weight:800}
+nav#nav{position:fixed;top:64px;bottom:0;left:0;width:205px;background:linear-gradient(180deg,#0b1d33,#102944);padding:12px 10px;display:flex;flex-direction:column;gap:3px;overflow:auto;z-index:40;border-right:1px solid rgba(255,255,255,.06)}nav button{border:0;background:transparent;color:#d1dbe7;text-align:left;padding:11px 13px;border-radius:7px;font-weight:700;font-size:13px;cursor:pointer;white-space:nowrap}nav button:hover{background:rgba(255,255,255,.07);color:#fff}nav button.active{background:linear-gradient(90deg,#1683f5,#1674dc);color:#fff;box-shadow:0 5px 15px rgba(22,131,245,.25)}nav button:before{display:inline-block;width:24px;margin-right:5px;font-size:14px}nav button:nth-child(1):before{content:'⌂'}nav button:nth-child(2):before{content:'▣'}nav button:nth-child(3):before{content:'▤'}nav button:nth-child(4):before{content:'⚙'}nav button:nth-child(5):before{content:'◆'}nav button:nth-child(6):before{content:'⬡'}nav button:nth-child(7):before{content:'◫'}nav button:nth-child(8):before{content:'▥'}nav button:nth-child(9):before{content:'◩'}nav button:nth-child(10):before{content:'⚙'}
+main{max-width:none;margin:0;padding:86px 22px 28px 227px}.page{display:none}.page.active{display:block}.grid{display:grid;gap:14px}.g2{grid-template-columns:repeat(2,1fr)}.g3{grid-template-columns:repeat(3,1fr)}.g4{grid-template-columns:repeat(4,1fr)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:9px;padding:15px;margin-bottom:14px;box-shadow:var(--shadow)}.card h2,.card h3{margin:0 0 11px}.muted{color:var(--muted);font-size:12px}
+label{display:block;font-weight:700;font-size:12px;color:#56657a;margin:8px 0 5px}input,select,textarea{width:100%;padding:8px;border:1px solid #cbd5e1;border-radius:6px;background:#fff}textarea{min-height:75px}.btn{border:0;border-radius:6px;padding:9px 12px;background:var(--blue);color:#fff;font-weight:700;cursor:pointer}.btn.gray{background:#e9eef6;color:#26364f}.btn.green{background:var(--good)}.btn.orange{background:var(--warn)}.btn.red{background:var(--bad)}.btn.sm{padding:6px 8px;font-size:12px}.actions{display:flex;gap:7px;flex-wrap:wrap;margin-top:10px}.tablewrap{overflow:auto;border:1px solid var(--line);border-radius:7px}table{width:100%;border-collapse:collapse;min-width:850px}th,td{padding:8px;border-bottom:1px solid var(--line);font-size:12px;text-align:left;vertical-align:middle}th{background:#f7f9fc;position:sticky;top:0}td input{min-width:80px;padding:5px;font-size:12px}
+.kpi{background:#fff;border:1px solid var(--line);border-radius:9px;padding:14px;box-shadow:var(--shadow);position:relative;overflow:hidden}.kpi:after{content:'';position:absolute;right:-18px;top:-18px;width:60px;height:60px;border-radius:50%;background:#eef6ff}.kpi b{display:block;font-size:22px;margin-top:5px}.badge{display:inline-block;padding:4px 8px;border-radius:99px;background:#eaf2ff;color:#2458bf;font-size:11px;font-weight:700}.ok{background:#e8f7ef;color:#16723d}.warn{background:#fff4dc;color:#8c5e12}.danger{background:#fdecec;color:#a42f2f}.notice{padding:11px;border-radius:7px;background:#edf5ff;border:1px solid #cfe0ff;margin-bottom:12px}.right{text-align:right}
+/* dashboard */
+.projecthero{display:grid;grid-template-columns:145px 1fr;gap:15px;align-items:stretch}.projectphoto{width:145px;height:118px;object-fit:cover;border-radius:7px}.hero-meta{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:12px;margin-top:12px}.hero-meta small{display:block;color:#7b8798;font-size:11px}.hero-meta b{font-size:12px}.dashboard-grid{display:grid;grid-template-columns:1.7fr 1fr .75fr;gap:14px}.workflow{display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin:18px 6px 5px}.step{flex:1;text-align:center;position:relative}.step:not(:last-child):after{content:'→';position:absolute;right:-9px;top:14px;color:#9eb1c7;font-size:22px}.stepicon{width:38px;height:38px;border-radius:50%;display:grid;place-items:center;margin:auto;background:#edf3fa;color:#8091a5;font-weight:900;border:1px solid #dce6f1}.step.done .stepicon{background:#e6f7ee;color:#16a36a;border-color:#bfe7d0}.step.active .stepicon{background:#1683f5;color:#fff;border-color:#1683f5}.step b{display:block;font-size:11px;margin-top:7px}.step span{font-size:10px;color:#7a8798}.photo-card{display:flex;gap:15px}.photo-card img{width:150px;height:108px;object-fit:cover;border-radius:7px}.section-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:9px}.section-head h2{margin:0}.mini-link{color:#1674dc;font-size:11px;font-weight:700}.activity{display:flex;gap:10px;padding:10px 0;border-bottom:1px solid #edf1f5}.activity:last-child{border:0}.activity-icon{width:30px;height:30px;border-radius:8px;background:#edf5ff;display:grid;place-items:center;color:#1683f5;flex:none}.activity b{font-size:11px}.activity small{display:block;color:#8793a2;margin-top:3px}.variance-up{color:#e14b4b;font-weight:800}.variance-down{color:#16a36a;font-weight:800}.quick{display:grid;grid-template-columns:repeat(7,1fr);gap:8px}.quick button{border:1px solid var(--line);background:#fff;border-radius:7px;padding:10px 7px;font-size:11px;color:#34445a;cursor:pointer}.quick button:hover{border-color:#9cc7f6;box-shadow:var(--shadow)}.sidebar-status{margin-top:auto;border:1px solid rgba(255,255,255,.13);border-radius:7px;padding:12px;color:#c9d5e3;font-size:11px}.online{display:inline-block;width:8px;height:8px;background:#23c778;border-radius:50%;margin-right:6px}
+@media(max-width:1200px){.dashboard-grid{grid-template-columns:1fr 1fr}.quick{grid-template-columns:repeat(4,1fr)}}@media(max-width:900px){header{padding-left:10px}.brand{width:auto}.brand small{display:none}.topsearch{display:none}nav#nav{width:64px;padding:10px 7px}nav button{font-size:0;text-align:center;padding:12px 5px}nav button:before{margin:0;width:auto;font-size:17px}main{padding-left:80px}.g2,.g3,.g4,.dashboard-grid{grid-template-columns:1fr}.projecthero{grid-template-columns:1fr}.projectphoto{width:100%;height:160px}.hero-meta{grid-template-columns:repeat(2,1fr)}}
+@media print{header,nav,.no-print{display:none!important}.page{display:block!important}main{padding:0}.card{box-shadow:none}}
 
-/**
- * Engineering Cost Estimator V6 – Complete Backend
- * Includes: calculation engine, Excel import/export, Supabase integration,
- * generic CRUD for all tables, workflow summary, procurement comparison, etc.
- */
+.drawing-thumb{width:92px;height:68px;border:1px solid #d8e1ec;border-radius:8px;background:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer;overflow:hidden}.drawing-thumb svg{width:100%;height:100%}.drawing-cell{min-width:118px}.drawing-meta{font-size:10px;color:#64748b;text-align:center;margin-top:3px}.drawing-modal{position:fixed;inset:0;background:rgba(6,20,38,.72);z-index:9999;display:none;align-items:center;justify-content:center;padding:24px}.drawing-modal.show{display:flex}.drawing-panel{background:#fff;border-radius:16px;width:min(900px,96vw);max-height:92vh;overflow:auto;box-shadow:0 24px 70px rgba(0,0,0,.3)}.drawing-panel-head{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid #e5e7eb}.drawing-canvas{padding:20px;background:#f5f7fa}.drawing-canvas svg{display:block;width:100%;height:auto;max-height:62vh;background:#fff;border:1px solid #cbd5e1}.drawing-info{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;padding:16px 20px}.drawing-info div{background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:9px}.drawing-info small{display:block;color:#64748b}.drawing-info b{font-size:13px}@media(max-width:700px){.drawing-info{grid-template-columns:repeat(2,1fr)}}
+</style>
+</head>
+<body>
+<header><div class="brand"><div class="brandmark">⚙</div><div><h1>Engineering Cost Estimator V6</h1><small>From Project to Actual Cost — One Platform</small></div></div><div class="topsearch"><span>⌕</span><input placeholder="Search projects, parts, materials, suppliers..."></div><div class="topuser"><span>🔔</span><div class="avatar">A</div><div><b>Admin</b><br><small>System Administrator</small></div><span>⌄</span></div></header>
+<nav id="nav">
+<button class="active" onclick="page('dash',this)">Dashboard</button><button onclick="page('project',this)">Projects</button><button onclick="page('import',this)">BOQ</button><button onclick="page('process',this)">MPP</button><button onclick="page('parts',this)">Parts</button><button onclick="page('materials',this)">Materials</button><button onclick="page('suppliers',this)">Suppliers</button><button onclick="page('estimate',this)">Procurement / Cost</button><button onclick="page('files',this)">Drawings & Files</button><button onclick="page('settings',this)">Settings</button>
+<div class="sidebar-status"><b>V6.0.0</b><br><span class="online"></span>System Online<br><br><span>▰ Powered by Supabase / PostgreSQL</span></div></nav>
 
-const express = require('express');
-const cors = require('cors');
-const multer = require('multer');
-const path = require('path');
-const fs = require('fs');
-const XLSX = require('xlsx');
+<div id="drawingModal" class="drawing-modal" onclick="if(event.target===this)closeDrawing()"><div class="drawing-panel"><div class="drawing-panel-head"><div><b id="drawingTitle">2D Part Drawing</b><div id="drawingSubtitle" class="muted"></div></div><button class="btn gray" onclick="closeDrawing()">Close</button></div><div id="drawingCanvas" class="drawing-canvas"></div><div id="drawingInfo" class="drawing-info"></div></div></div>
+<main>
+<section id="dash" class="page active">
+<div class="card projecthero"><img class="projectphoto" src="/project-steel.jpg" alt="Steel structure project"><div><div class="section-head"><div><span class="badge ok">● In Production</span> <span class="badge">Rev: R03</span><h2 style="display:inline;margin-left:8px">Project: Steel Structure Package A</h2></div><button class="btn gray no-print" onclick="page('project',document.querySelectorAll('#nav button')[1])">Edit</button></div><div class="muted">ABC Construction Ltd. · Steel structure for industrial warehouse with custom fabricated components.</div><div class="hero-meta"><div><small>Start Date</small><b>2025-08-01</b></div><div><small>End Date</small><b>2025-10-30</b></div><div><small>Estimate</small><b id="heroEstimate">—</b></div><div><small>Revision</small><b>BOQ-R03</b></div></div></div></div>
+<div class="grid g4"><div class="kpi"><span class="muted">BOQ Value</span><b id="kboqValue">ETB 248,500</b></div><div class="kpi"><span class="muted">Material Cost</span><b id="kmat">ETB 91,240</b></div><div class="kpi"><span class="muted">Purchase Cost</span><b id="kpurchase">ETB 103,800</b></div><div class="kpi"><span class="muted">Actual Cost</span><b id="kactualTop">ETB 76,420</b></div></div>
+<div class="dashboard-grid">
+<div>
+<div class="card"><div class="section-head"><h2>Project Workflow</h2><span class="mini-link">View workflow</span></div><div class="workflow"><div class="step done"><div class="stepicon">✓</div><b>1. Project</b><span>Completed</span></div><div class="step done"><div class="stepicon">✓</div><b>2. BOQ</b><span>Completed</span></div><div class="step done"><div class="stepicon">✓</div><b>3. MPP</b><span>Completed</span></div><div class="step done"><div class="stepicon">✓</div><b>4. Procurement</b><span>Completed</span></div><div class="step active"><div class="stepicon">⚙</div><b>5. Production</b><span>In Progress</span></div><div class="step"><div class="stepicon">⚙</div><b>6. Actual Cost</b><span>2 Pending</span></div></div></div>
+<div class="card"><div class="section-head"><h2>Recent Projects</h2><span class="mini-link">View All</span></div><div class="tablewrap"><table style="min-width:650px"><tr><th>ID</th><th>Project Name</th><th>Status</th><th>Revision</th><th>Total Value</th><th>Last Updated</th></tr><tr><td>PRJ-001</td><td>Steel Structure Package A</td><td><span class="badge ok">In Production</span></td><td>R03</td><td>ETB 248,500</td><td>10 min ago</td></tr><tr><td>PRJ-002</td><td>Conveyor System</td><td><span class="badge">Planning</span></td><td>R01</td><td>ETB 156,300</td><td>2 hours ago</td></tr><tr><td>PRJ-003</td><td>Storage Tank</td><td><span class="badge warn">Procurement</span></td><td>R02</td><td>ETB 320,750</td><td>5 hours ago</td></tr><tr><td>PRJ-004</td><td>Factory Building</td><td><span class="badge">Production</span></td><td>R01</td><td>ETB 412,600</td><td>1 day ago</td></tr></table></div></div>
+<div class="card"><div class="section-head"><h2>BOQ Overview</h2><span class="mini-link">View All</span></div><div class="tablewrap"><table style="min-width:650px"><tr><th>#</th><th>2D Drawing</th><th>Part No.</th><th>Description</th><th>Qty</th><th>Material</th><th>Unit Cost</th><th>Total</th></tr><tr><td>01</td><td class="drawing-cell"><div class="drawing-thumb" onclick="openDrawing({part_no:'P-1001',description:'Base Plate',qty:24,material:'S355',dims:{type:'plate',length:300,width:250,thickness:12}})"><span>View</span></div></td><td>P-1001</td><td>Base Plate</td><td>24</td><td>S355</td><td>ETB 42.50</td><td>ETB 1,020</td></tr><tr><td>02</td><td class="drawing-cell"><div class="drawing-thumb" onclick="openDrawing({part_no:'P-1002',description:'Column',qty:12,material:'S355',dims:{type:'rectbar',length:6000,width:250,height:250}})"><span>View</span></div></td><td>P-1002</td><td>12</td><td>S355</td><td>ETB 185.20</td><td>ETB 2,222</td></tr><tr><td>03</td><td class="drawing-cell"><div class="drawing-thumb" onclick="openDrawing({part_no:'P-1003',description:'Beam',qty:18,material:'S355',dims:{type:'rectbar',length:6000,width:200,height:300}})"><span>View</span></div></td><td>P-1003</td><td>18</td><td>S355</td><td>ETB 241.80</td><td>ETB 4,352</td></tr><tr><td>04</td><td class="drawing-cell"><div class="drawing-thumb" onclick="openDrawing({part_no:'P-1004',description:'Bracing',qty:36,material:'S275',dims:{type:'rod',length:3500,diameter:20}})"><span>View</span></div></td><td>P-1004</td><td>36</td><td>S275</td><td>ETB 128.40</td><td>ETB 4,622</td></tr><tr><th colspan="7">Total (BOQ Value)</th><th>ETB 248,500</th></tr></table></div></div>
+</div>
+<div>
+<div class="card"><div class="section-head"><h2>Cost Summary</h2><span class="mini-link">Details</span></div><div style="display:flex;gap:18px;align-items:center"><div style="width:125px;height:125px;border-radius:50%;background:conic-gradient(#1683f5 0 37%,#f59e0b 37% 57%,#16a36a 57% 76%,#7357e8 76% 100%);display:grid;place-items:center"><div style="width:75px;height:75px;background:#fff;border-radius:50%;display:grid;place-items:center;text-align:center;font-weight:800;font-size:12px">ETB<br>248,500</div></div><div class="muted">🔵 Material 36.7%<br>🟠 Manufacturing 19.6%<br>🟢 Purchased 41.8%<br>🟣 Actual 30.8%<br>🔹 Margin 17.8%</div></div></div>
+<div class="card"><div class="section-head"><h2>Cost Variance</h2><span class="mini-link">View Details</span></div><table style="min-width:0"><tr><th>Category</th><th>Variance</th><th>Status</th></tr><tr><td>Material</td><td class="variance-up">+ETB 4,820 ↑</td><td><span class="badge danger">High</span></td></tr><tr><td>Manufacturing</td><td class="variance-down">-ETB 2,100 ↓</td><td><span class="badge ok">Good</span></td></tr><tr><td>Purchased</td><td class="variance-up">+ETB 3,450 ↑</td><td><span class="badge danger">High</span></td></tr><tr><td>Labor</td><td class="variance-down">-ETB 1,230 ↓</td><td><span class="badge ok">Good</span></td></tr><tr><th>Overall</th><th class="variance-up">+ETB 2,720 ↑</th><th><span class="badge warn">Attention</span></th></tr></table></div>
+<div class="card"><div class="section-head"><h2>Top Material Costs</h2><span class="mini-link">View All</span></div><table style="min-width:0"><tr><th>Material</th><th>Weight</th><th>Cost</th></tr><tr><td>S355 Steel</td><td>18,450 kg</td><td>ETB 42,600</td></tr><tr><td>S275 Steel</td><td>8,230 kg</td><td>ETB 18,400</td></tr><tr><td>Bolts & Fasteners</td><td>2,460 kg</td><td>ETB 6,800</td></tr><tr><td>Paint & Coating</td><td>1,230 kg</td><td>ETB 4,200</td></tr><tr><th>Total</th><th></th><th>ETB 91,240</th></tr></table></div>
+</div>
+<div>
+<div class="card"><div class="section-head"><h2>Recent Activity</h2><span class="mini-link">View All</span></div><div class="activity"><div class="activity-icon">▤</div><div><b>Ahmed updated BOQ-R03</b><small>Project: Steel Structure Package A<br>10 min ago</small></div></div><div class="activity"><div class="activity-icon">🛒</div><div><b>Steel supplier quote imported</b><small>Material: S355 Plate<br>32 min ago</small></div></div><div class="activity"><div class="activity-icon">⚙</div><div><b>MPP-024 released to production</b><small>1 hour ago</small></div></div><div class="activity"><div class="activity-icon">▣</div><div><b>Purchase Order PO-0087 created</b><small>Supplier: Steel Suppliers Ltd.<br>2 hours ago</small></div></div><div class="activity"><div class="activity-icon">📐</div><div><b>Drawing P-1002 updated</b><small>Version: R03<br>3 hours ago</small></div></div><div class="activity"><div class="activity-icon">◉</div><div><b>Actual cost updated</b><small>Production: MPP-024<br>5 hours ago</small></div></div></div></div>
+<div class="card"><h2>System Information</h2><div class="muted" style="line-height:2">Application Version <b>V6.0.0</b><br>Database <b>Supabase (PostgreSQL)</b><br>Last Backup <b>Today 02:00</b><br>Environment <b>Production</b></div></div>
+</div></div>
+<div class="card"><div class="section-head"><h2>Quick Actions</h2></div><div class="quick"><button onclick="page('project',document.querySelectorAll('#nav button')[1])">＋<br>Add New Project</button><button onclick="page('import',document.querySelectorAll('#nav button')[2])">▤<br>Create BOQ</button><button onclick="page('files',document.querySelectorAll('#nav button')[8])">☁<br>Upload Drawings</button><button onclick="page('suppliers',document.querySelectorAll('#nav button')[6])">⚖<br>Compare Suppliers</button><button onclick="page('estimate',document.querySelectorAll('#nav button')[7])">🛒<br>Create Purchase Order</button><button onclick="page('estimate',document.querySelectorAll('#nav button')[7])">▥<br>View Reports</button><button onclick="exportV6Excel()">▣<br>Export to Excel</button></div></div>
+</section>
 
-let createClient = null;
-try { ({ createClient } = require('@supabase/supabase-js')); } catch (_) {}
+<section id="project" class="page">
+<div class="card"><h2>Project master</h2><div class="grid g3">
+<div><label>Project name</label><input id="projectName"></div><div><label>Estimate number</label><input id="estimateNo"></div><div><label>Customer</label><input id="customer"></div>
+<div><label>Machine quantity</label><input id="machineQty" type="number" value="1" min="1"></div><div><label>USD → ETB</label><input id="fx" type="number" value="150" step=".01" onchange="calc()"></div><div><label>Status</label><select id="status"><option>Draft</option><option>Engineering Review</option><option>Cost Review</option><option>Approved</option><option>Released</option></select></div>
+</div><div class="actions"><button class="btn green" onclick="upsertProject()">Save Project to Supabase</button><button class="btn gray" onclick="loadProjects()">Load Projects</button></div><div id="projects"></div></div>
+<div class="card"><h2>Revision control</h2><p class="muted">Every BOQ/MPP revision is stored separately. Never overwrite an approved revision.</p><div class="grid g3"><div><label>Revision</label><input id="revisionNo" value="A"></div><div><label>Revision reason</label><input id="revisionReason" placeholder="Initial / quantity change / drawing update"></div><div><label>Revision status</label><select id="revisionStatus"><option>Draft</option><option>Review</option><option>Approved</option><option>Superseded</option></select></div></div><div class="actions"><button class="btn" onclick="saveRevision()">Save Revision</button></div></div>
+</section>
 
-const PORT = Number(process.env.PORT || 3000);
-const ROOT = __dirname;
-const PUBLIC_DIR = path.join(ROOT, 'public');
-const UPLOAD_DIR = path.join(ROOT, 'uploads');
-fs.mkdirSync(UPLOAD_DIR, { recursive: true });
+<section id="import" class="page">
+<div class="grid g2">
+<div class="card"><h2>BOQ import</h2><input id="boqFile" type="file" accept=".xlsx,.xls,.csv"><div class="actions"><button class="btn" onclick="importExcel('boqFile','boq')">Import BOQ</button></div><p id="boqMsg" class="muted"></p></div>
+<div class="card"><h2>MPP import</h2><input id="mppFile" type="file" accept=".xlsx,.xls,.csv"><div class="actions"><button class="btn" onclick="importExcel('mppFile','mpp')">Import MPP</button></div><p id="mppMsg" class="muted"></p></div>
+</div>
+<div class="card"><h2>Automatic column mapping</h2><div id="mapping"></div><div class="actions"><button class="btn green" onclick="buildParts()">Build Parts</button><button class="btn orange" onclick="matchParts()">Match BOQ ↔ MPP</button></div></div>
+<div class="card"><h2>Preview</h2><div id="preview" class="tablewrap"></div></div>
+</section>
 
-const app = express();
-app.use(cors());
-app.use(express.json({ limit: '20mb' }));
-app.use(express.urlencoded({ extended: true, limit: '20mb' }));
-app.use(express.static(PUBLIC_DIR));
+<section id="parts" class="page"><div class="card"><div class="grid g3"><div><label>Search</label><input id="partQ" oninput="renderParts()"></div><div><label>Match filter</label><select id="partF" onchange="renderParts()"><option value="">All</option><option value="yes">Matched</option><option value="no">Unmatched</option></select></div><div><label>Part actions</label><div class="actions"><button class="btn" onclick="addPart()">+ Part</button><button class="btn gray" onclick="matchParts()">Auto-match</button></div></div></div></div><div class="card"><div id="partsTable" class="tablewrap"></div></div></section>
 
-const upload = multer({
-  dest: UPLOAD_DIR,
-  limits: { fileSize: 50 * 1024 * 1024 }
-});
+<section id="materials" class="page"><div class="card"><h2>Engineering material calculator</h2><p class="muted">Dimensions are interpreted in mm. The density table is editable. The calculator supports plate, bar, rod, pipe/tube, sheet, cylinder and custom volume.</p><div class="grid g4"><div><label>Default waste %</label><input id="wastePct" type="number" value="5" onchange="calc()"></div><div><label>Default landed/import %</label><input id="landPct" type="number" value="8" onchange="calc()"></div><div><label>Default density kg/m³</label><input id="density" type="number" value="7850" onchange="calc()"></div><div><label>Default material price USD/kg</label><input id="defaultPrice" type="number" value="1" step=".001" onchange="calc()"></div></div></div><div class="card"><div id="materialsTable" class="tablewrap"></div></div></section>
 
-// -------- Utility functions --------
-const num = (v, d = 0) => {
-  if (v === null || v === undefined || v === '') return d;
-  if (typeof v === 'number') return Number.isFinite(v) ? v : d;
-  const n = Number(String(v).replace(/,/g, '').replace(/%$/, ''));
-  return Number.isFinite(n) ? n : d;
-};
-const pct = v => num(v) / 100;
-const round = (v, digits = 2) => {
-  const p = 10 ** digits;
-  return Math.round((num(v) + Number.EPSILON) * p) / p;
-};
-const clean = v => String(v ?? '').trim();
-const lower = v => clean(v).toLowerCase();
-const sum = xs => xs.reduce((a, b) => a + num(b), 0);
-const safe = (fn, fallback = null) => { try { return fn(); } catch (_) { return fallback; } };
+<section id="suppliers" class="page"><div class="card"><h2>Supplier comparison</h2><p class="muted">Record supplier quotations and choose one supplier/price per material. Alibaba search is provided for live sourcing; automated commercial retrieval should be connected through an approved API/backend.</p><div class="actions"><button class="btn" onclick="addSupplier()">+ Supplier Quote</button></div></div><div class="card"><div id="supplierTable" class="tablewrap"></div></div></section>
 
-// -------- Excel formulas (migrated) --------
-const EXCEL_FORMULAS = Object.freeze({
-  price_estimation: {
-    H10: 'H11+H12',
-    H11: "'Direct raw material cost'!J10+'Casting parts'!J8",
-    H12: "'standard parts cost'!H8",
-    H13: 'H10*0.07',
-    H14: "'Amimtde DLC and OHC'!E41",
-    H15: "'Machining cost '!W9",
-    H16: "'Service cost'!L3",
-    H17: "'Amimtde DLC and OHC'!H24",
-    H18: "'Amimtde DLC and OHC'!H15",
-    H19: 'H10+H13+H14+H15+H16+H17+H18'
+<section id="process" class="page"><div class="card"><h2>MPP manufacturing cost</h2><div class="actions"><button class="btn" onclick="addOp()">+ Operation</button></div></div><div class="card"><div id="opTable" class="tablewrap"></div></div></section>
+
+<section id="estimate" class="page"><div class="card"><h2>Complete Excel-model cost build-up</h2><p class="muted">This V5 preserves the identified workbook relationships: raw material + casting → 7% material overhead → direct labour → machining → service → factory overhead → head-office overhead → total manufacturing cost → profit → selling price. The detailed engineering sheets are represented as editable inputs below.</p>
+<div class="grid g3"><div><label>Materials overhead %</label><input id="matOH" type="number" value="7" onchange="calc()"></div><div><label>Factory overhead %</label><input id="factoryOH" type="number" value="0" onchange="calc()"></div><div><label>Head-office overhead %</label><input id="officeOH" type="number" value="0" onchange="calc()"></div><div><label>Service cost ETB</label><input id="service" type="number" value="0" onchange="calc()"></div><div><label>Profit %</label><input id="profit" type="number" value="10" onchange="calc()"></div><div><label>Contingency %</label><input id="contingency" type="number" value="0" onchange="calc()"></div></div><br><div id="estimateTable" class="tablewrap"></div></div></section>
+
+<section id="files" class="page"><div class="card"><h2>Drawings & part files</h2><p class="muted">Upload drawings, PDFs, images, CAD exports, specifications and other part documents to Supabase Storage and link them to the selected project/part.</p><div class="grid g3"><div><label>Part ID</label><input id="filePart" placeholder="P-0001"></div><div><label>File</label><input id="assetFile" type="file"></div><div><label>Description</label><input id="fileDesc"></div></div><div class="actions"><button class="btn" onclick="uploadAsset()">Upload to Supabase Storage</button></div><div id="assetList"></div></div>
+<div class="card"><h2>Revision files</h2><p class="muted">Keep each BOQ, MPP and drawing attached to its revision. Use immutable revision numbers for approved engineering baselines.</p></div></section>
+
+<section id="settings" class="page"><div class="card"><h2>Supabase connection</h2><div class="notice">Use your project's Supabase URL and publishable/anon key. Never put a service-role key in this browser app. Supabase recommends protecting exposed tables with Row Level Security.</div><label>Supabase URL</label><input id="sbUrl" placeholder="https://YOUR_PROJECT.supabase.co"><label>Publishable / anon key</label><input id="sbKey" type="password" placeholder="YOUR_PUBLISHABLE_KEY"><div class="actions"><button class="btn green" onclick="connect()">Connect</button><button class="btn gray" onclick="testConnection()">Test Database</button></div><p id="connMsg" class="muted"></p></div>
+<div class="card"><h2>Engineering rates</h2><div class="grid g3"><div><label>Machining ETB/hour</label><input id="machRate" type="number" value="500"></div><div><label>Labour ETB/hour</label><input id="labRate" type="number" value="250"></div><div><label>Design ETB/hour</label><input id="designRate" type="number" value="300"></div><div><label>QC ETB/hour</label><input id="qcRate" type="number" value="250"></div><div><label>Assembly ETB/hour</label><input id="assemblyRate" type="number" value="250"></div></div></div></section>
+</main>
+
+<!-- ==================== All frontend JavaScript embedded here ==================== -->
+<script>
+// -------- V6 Brain API client (formerly v6-api.js) --------
+window.V6Brain = {
+  async request(url, options={}) {
+    const r=await fetch(url,{headers:{'Content-Type':'application/json',...(options.headers||{})},...options});
+    const text=await r.text(); let data; try{data=JSON.parse(text)}catch{data={error:text}};
+    if(!r.ok) throw new Error(data.error||'Request failed');
+    return data;
   },
-  direct_raw_material: {
-    J10: 'SUMIF(I11:I160,">0")*0.85',
-    I11: 'H11*G11*F11',
-    H11: 'LOOKUP(C11,L11:L300,U11:U300)',
-    D11: 'LOOKUP(C11,L11:L300,M11:M300)'
-  },
-  standard_parts: {
-    H8: 'SUM(G9:G45)*0.85',
-    G9: 'F9*D9'
-  },
-  pattern_making: { H5: 'SUMIF(G6:G24,">0")/60' },
-  assembly: { G5: '(F6+F7+F9+F8+F11+F12+F13)/60' },
-  quality_control: { F3: 'SUM(E4:E9)/60' },
-  service: {
-    L3: 'F10+F16+F26+E32',
-    F10: 'N7+M9',
-    F16: 'M13+I15',
-    F26: 'M25+M22+M19',
-    F32: 'M29+L31'
+  calculate: payload=>window.V6Brain.request('/api/calculate',{method:'POST',body:JSON.stringify(payload)}),
+  weight: payload=>window.V6Brain.request('/api/material/weight',{method:'POST',body:JSON.stringify(payload)}),
+  mpp: payload=>window.V6Brain.request('/api/mpp/calculate',{method:'POST',body:JSON.stringify(payload)}),
+  compare: payload=>window.V6Brain.request('/api/procurement/compare',{method:'POST',body:JSON.stringify(payload)}),
+  workflow: projectId=>window.V6Brain.request('/api/workflow/'+encodeURIComponent(projectId)),
+  data: (type, projectId)=>window.V6Brain.request('/api/data/'+type+(projectId?'?project_id='+encodeURIComponent(projectId):'')),
+  create: (type,payload)=>window.V6Brain.request('/api/data/'+type,{method:'POST',body:JSON.stringify(payload)}),
+  update: (type,id,payload)=>window.V6Brain.request('/api/data/'+type+'/'+id,{method:'PATCH',body:JSON.stringify(payload)}),
+  remove: (type,id)=>window.V6Brain.request('/api/data/'+type+'/'+id,{method:'DELETE'}),
+  exportExcel: async payload=>{
+    const r=await fetch('/api/export/excel',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+    if(!r.ok) throw new Error('Excel export failed');
+    const blob=await r.blob(), a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='engineering-estimate-v6.xlsx';a.click();URL.revokeObjectURL(a.href);
   }
-});
+};
+// Keep V5Brain alias for compatibility
+window.V5Brain = window.V6Brain;
 
-// -------- Core calculation engines --------
-function materialWeight(opts = {}) {
-  const { shape, densityKgM3 = 7850, lengthMm, widthMm, thicknessMm, diameterMm, outerDiameterMm, innerDiameterMm, quantity = 1 } = opts;
-  const L = num(lengthMm) / 1000;
-  const W = num(widthMm) / 1000;
-  const T = num(thicknessMm) / 1000;
-  const D = num(diameterMm) / 1000;
-  const OD = num(outerDiameterMm) / 1000;
-  const ID = num(innerDiameterMm) / 1000;
-  let volume = 0;
-  switch (lower(shape)) {
-    case 'plate': case 'sheet': case 'flat':
-      volume = L * W * T; break;
-    case 'bar': case 'rod':
-      volume = Math.PI * D * D / 4 * L; break;
-    case 'cylinder': case 'round':
-      volume = Math.PI * D * D / 4 * L; break;
-    case 'pipe': case 'tube':
-      volume = Math.PI * (OD * OD - ID * ID) / 4 * L; break;
-    case 'box': case 'block': case 'rectangular':
-      volume = L * W * T; break;
-    case 'custom':
-      volume = num(opts.volumeM3); break;
-    default:
-      volume = L * W * T;
-  }
-  const per = volume * num(densityKgM3);
-  return { volumeM3: volume, weightKgPerPart: per, totalWeightKg: per * num(quantity, 1) };
+// -------- Application state and logic --------
+const DB={boq:[],mpp:[],parts:[],suppliers:[],ops:[],projectId:null,revisionId:null,estimate:{}};
+let sb=null;
+const aliases={part:['part no','part number','item no','item number','code','component no','drawing no'],desc:['description','part name','item description','component name','name'],qty:['qty','quantity','required qty','amount'],material:['material','material grade','raw material','grade'],spec:['specification','spec','size','dimension','dimensions'],weight:['weight','mass','kg'],process:['process','operation','manufacturing process'],setup:['setup time','setup min'],cycle:['cycle time','cycle min','operation time'],rate:['rate','hourly rate']};
+const $=id=>document.getElementById(id);
+const norm=x=>String(x??'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim();
+const money=x=>'ETB '+Number(x||0).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2});
+const num=(v,d=0)=>{const n=Number(v);return isFinite(n)?n:d;};
+
+function page(id,b){
+  document.querySelectorAll('.page').forEach(x=>x.classList.remove('active'));
+  $(id).classList.add('active');
+  document.querySelectorAll('nav button').forEach(x=>x.classList.remove('active'));
+  if(b)b.classList.add('active');
+  if(id==='parts')renderParts();
+  if(id==='materials')renderMaterials();
+  if(id==='suppliers')renderSuppliers();
+  if(id==='process')renderOps();
+  if(id==='estimate')calc();
 }
 
-function calculateEngineeringEstimate(input = {}) {
-  const s = input.settings || {};
-  const parts = Array.isArray(input.parts) ? input.parts : [];
-  const materials = Array.isArray(input.materials) ? input.materials : [];
-  const castings = Array.isArray(input.castings) ? input.castings : [];
-  const standardParts = Array.isArray(input.standardParts) ? input.standardParts : [];
-  const operations = Array.isArray(input.operations) ? input.operations : [];
-  const labour = Array.isArray(input.labour) ? input.labour : [];
-  const services = Array.isArray(input.services) ? input.services : [];
+// -------- Supabase connection --------
+function connect(){const u=$('sbUrl').value.trim(),k=$('sbKey').value.trim();if(!u||!k)return alert('Enter Supabase URL and publishable/anon key.');sb=window.supabase.createClient(u,k,{auth:{persistSession:true}});$('connMsg').textContent='Supabase client created. Click Test Database.';}
+async function testConnection(){if(!sb)return connect();const {error}=await sb.from('projects').select('id').limit(1);$('connMsg').textContent=error?'Database test: '+error.message:'Database connection OK.';}
 
-  const rawMaterial = sum(materials.map(x => num(x.weightKg ?? x.weight) * num(x.unitCost ?? x.etbPerKg) * num(x.qty, 1)));
-  const casting = sum(castings.map(x => num(x.weightKg ?? x.weight) * num(x.unitCost ?? x.costPerKg) * num(x.qty, 1)));
-  const standard = sum(standardParts.map(x => num(x.qty, 1) * num(x.unitPrice ?? x.unitCost)));
-  const materialBase = rawMaterial + casting;
-
-  const materialOHRate = s.excelMaterialOH === undefined ? 0.07 : pct(s.excelMaterialOH);
-  const materialOH = materialBase * materialOHRate;
-
-  const designLabour = num(input.designLabourCost ?? s.designLabourCost);
-  const directLabour = labour.length
-    ? sum(labour.map(x => num(x.hours) * num(x.rate)))
-    : num(input.directLabourCost);
-
-  const machining = sum(operations.map(x => {
-    const hours = num(x.hours ?? x.timeHours ?? x.time);
-    const rate = num(x.rate ?? x.machineRate);
-    return hours * rate;
-  }));
-
-  const pattern = num(input.patternMakingCost ?? s.patternMakingCost);
-  const assembly = num(input.assemblyCost ?? s.assemblyCost);
-  const qc = num(input.qualityControlCost ?? s.qualityControlCost);
-  const manufacturingLabour = designLabour + directLabour + pattern + assembly + qc;
-
-  const service = services.length
-    ? sum(services.map(x => num(x.cost ?? x.total)))
-    : num(input.serviceCost ?? s.serviceCost);
-
-  const factoryRate = pct(s.factoryOverheadPct ?? s.factoryOH ?? 0);
-  const officeRate = pct(s.officeOverheadPct ?? s.officeOH ?? 0);
-  const factoryBase = materialBase + manufacturingLabour + machining;
-  const factoryOH = factoryBase * factoryRate;
-  const officeBase = materialBase + manufacturingLabour + machining + materialOH + factoryOH + service;
-  const officeOH = officeBase * officeRate;
-
-  const subtotal = materialBase + materialOH + manufacturingLabour + machining + service + factoryOH + officeOH;
-  const contingency = subtotal * pct(s.contingencyPct ?? s.contPct ?? 0);
-  const manufacturingCost = subtotal + contingency;
-  const profit = manufacturingCost * pct(s.profitPct ?? s.profit ?? 0);
-  const sellingPrice = manufacturingCost + profit;
-  const qty = num(input.machineQty ?? input.quantity, 1);
-
-  const result = {
-    currency: s.currency || 'ETB',
-    quantity: qty,
-    lines: {
-      rawMaterial: round(rawMaterial),
-      casting: round(casting),
-      materialBase: round(materialBase),
-      standardParts: round(standard),
-      materialOH: round(materialOH),
-      designLabour: round(designLabour),
-      directLabour: round(directLabour),
-      patternMaking: round(pattern),
-      assembly: round(assembly),
-      qualityControl: round(qc),
-      manufacturingLabour: round(manufacturingLabour),
-      machining: round(machining),
-      service: round(service),
-      factoryOH: round(factoryOH),
-      officeOH: round(officeOH),
-      contingency: round(contingency),
-      manufacturingCost: round(manufacturingCost),
-      profit: round(profit),
-      sellingPrice: round(sellingPrice),
-      sellingPricePerMachine: round(sellingPrice / Math.max(qty, 1))
-    },
-    formulaTrace: [
-      { key: 'H10', formula: 'H11+H12', value: round(materialBase + standard) },
-      { key: 'H11', formula: "Direct raw material J10 + Casting parts J8", value: round(materialBase) },
-      { key: 'H12', formula: "standard parts H8", value: round(standard) },
-      { key: 'H13', formula: 'H10*0.07', value: round((materialBase + standard) * 0.07) },
-      { key: 'H14', formula: "Amimtde DLC and OHC E41", value: round(designLabour + directLabour + pattern + assembly + qc) },
-      { key: 'H15', formula: "Machining cost W9", value: round(machining) },
-      { key: 'H16', formula: "Service cost L3", value: round(service) },
-      { key: 'H17', formula: "Amimtde DLC and OHC H24", value: round(factoryOH) },
-      { key: 'H18', formula: "Amimtde DLC and OHC H15", value: round(officeOH) },
-      { key: 'H19', formula: 'H10+H13+H14+H15+H16+H17+H18', value: round(materialBase + standard + (materialBase + standard) * 0.07 + manufacturingLabour + machining + service + factoryOH + officeOH) }
-    ]
-  };
-  return result;
+// -------- Project CRUD --------
+async function upsertProject(){
+  if(!sb)return alert('Connect Supabase first.');
+  const row={name:$('projectName').value,estimate_no:$('estimateNo').value,customer:$('customer').value,machine_qty:Number($('machineQty').value||1),currency:'ETB',fx_rate:Number($('fx').value||150),status:$('status').value};
+  let q=DB.projectId?await sb.from('projects').update(row).eq('id',DB.projectId).select().single():await sb.from('projects').insert(row).select().single();
+  if(q.error)return alert(q.error.message);
+  DB.projectId=q.data.id;
+  alert('Project saved: '+q.data.id);
 }
-
-// -------- Supabase client (server-side) --------
-function supabaseServer() {
-  const url = process.env.SUPABASE_URL;
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY;
-  if (!url || !key || !createClient) return null;
-  return createClient(url, key, { auth: { persistSession: false } });
+async function loadProjects(){
+  if(!sb)return alert('Connect Supabase first.');
+  const {data,error}=await sb.from('projects').select('*').order('created_at',{ascending:false}).limit(20);
+  if(error)return alert(error.message);
+  $('projects').innerHTML='<div class="tablewrap"><table><tr><th>Project</th><th>Estimate</th><th>Status</th><th>Created</th><th></th></tr>'+data.map(x=>`<tr><td>${x.name||''}</td><td>${x.estimate_no||''}</td><td>${x.status||''}</td><td>${String(x.created_at||'').slice(0,19)}</td><td><button class="btn sm" onclick="selectProject('${x.id}')">Open</button></td></tr>`).join('')+'</table></div>';
 }
-function actor(req){ return clean(req.headers['x-user-id']) || null; }
-function tableFor(type){ const map={ revision:'revisions', boq:'boq_items', parts:'parts', mpp:'mpp_operations', materials:'materials', suppliers:'suppliers', quotes:'supplier_quotes', purchaseOrders:'purchase_orders', production:'production_orders', actualCosts:'actual_costs', files:'part_files', estimates:'estimates', audit:'audit_log' }; return map[type]||type; }
-
-// -------- Audit helper --------
-async function audit(req, sb, payload) {
+async function selectProject(id){
+  DB.projectId=id;
+  const {data,error}=await sb.from('projects').select('*').eq('id',id).single();
+  if(error)return alert(error.message);
+  $('projectName').value=data.name||'';
+  $('estimateNo').value=data.estimate_no||'';
+  $('customer').value=data.customer||'';
+  $('machineQty').value=data.machine_qty||1;
+  $('fx').value=data.fx_rate||150;
+  $('status').value=data.status||'Draft';
+  // load parts/suppliers/ops from generic data endpoints
   try {
-    await sb.from('audit_log').insert({ ...payload, actor_id: actor(req), ip_address: req.ip });
-  } catch(e){ console.warn('audit:', e.message); }
+    const parts=await V6Brain.data('parts',id); DB.parts=parts.data||[];
+    const suppliers=await V6Brain.data('suppliers',id); DB.suppliers=suppliers.data||[];
+    const ops=await V6Brain.data('mpp_operations',id); DB.ops=ops.data||[];
+    renderParts(); renderSuppliers(); renderOps(); calc();
+  } catch(e){ /* ignore */ }
+}
+async function saveRevision(){
+  if(!sb||!DB.projectId)return alert('Save/open a project first.');
+  const {data,error}=await sb.from('revisions').insert({project_id:DB.projectId,revision_no:$('revisionNo').value,reason:$('revisionReason').value,status:$('revisionStatus').value}).select().single();
+  if(error)return alert(error.message);
+  DB.revisionId=data.id;
+  alert('Revision saved: '+data.revision_no);
 }
 
-// ======================== API ROUTES ========================
-
-// --- Health and version ---
-app.get('/api/health', (req,res)=>res.json({ok:true, service:'engineering-cost-estimator-v6', version:'6.0.0', time:new Date().toISOString(), database:Boolean(process.env.SUPABASE_URL)}));
-app.get('/api/version', (req,res)=>res.json({ok:true, version:'6.0.0', features:[
-  'BOQ↔MPP↔Parts↔Materials linkage','Supabase/PostgreSQL','BOQ revision control',
-  'automatic geometry weight','supplier comparison','purchase/manufacturing costing',
-  'drawing/part files','ERP workflow','Excel formula import/export','audit trail','permissions-ready',
-  'Project→BOQ→MPP→Procurement→Production→Actual Cost'
-]}));
-app.get('/api/formulas', (req,res)=>res.json({version:'6.0.0', formulas:EXCEL_FORMULAS}));
-
-// --- Calculation endpoints ---
-app.post('/api/calculate', (req,res)=>{
-  try { const result=calculateEngineeringEstimate(req.body||{}); res.json({ok:true, version:'6.0.0', result, trace:result.formulaTrace}); }
-  catch(e){ res.status(422).json({ok:false, error:e.message}); }
-});
-app.post('/api/material/weight', (req,res)=>{
-  try { res.json({ok:true, result:materialWeight(req.body||{})}); }
-  catch(e){ res.status(422).json({ok:false, error:e.message}); }
-});
-
-// --- MPP calculation ---
-app.post('/api/mpp/calculate', (req,res)=>{
-  try{
-    const rows=Array.isArray(req.body.operations)?req.body.operations:[];
-    const result=rows.map((o,i)=>{
-      const setup=num(o.setup_min), cycle=num(o.cycle_min), qty=num(o.qty,1);
-      const hours=(setup+cycle*qty)/60;
-      return {...o, row:i, hours:round(hours), machineCost:round(hours*num(o.machine_rate??o.rate)), labourCost:round(hours*num(o.labour_rate)), processCost:round(hours*num(o.process_rate)), totalCost:round(hours*(num(o.machine_rate??o.rate)+num(o.labour_rate)+num(o.process_rate)))};
-    });
-    res.json({ok:true, result, total:round(sum(result.map(x=>x.totalCost)))});
-  }catch(e){ res.status(422).json({ok:false, error:e.message}); }
-});
-
-// --- Procurement comparison ---
-app.post('/api/procurement/compare', (req,res)=>{
-  try{
-    const q=Array.isArray(req.body.quotes)?req.body.quotes:[], qty=num(req.body.qty,1), fx=num(req.body.fxRate,1);
-    const rows=q.map(x=>{
-      const base=num(x.unit_price??x.price_usd_kg)*qty, freight=num(x.freight), duty=base*pct(x.duty_pct), other=num(x.other_cost);
-      const landed=(base+freight+duty+other)*fx;
-      return {...x, baseCost:round(base*fx), dutyCost:round(duty*fx), landedCost:round(landed), costPerUnit:round(landed/Math.max(qty,1))};
-    }).sort((a,b)=>a.landedCost-b.landedCost);
-    res.json({ok:true, rows, recommended:rows[0]||null});
-  }catch(e){ res.status(422).json({ok:false, error:e.message}); }
-});
-
-// --- Excel import/export ---
-app.post('/api/import/inspect', upload.single('file'), (req,res)=>{
-  if(!req.file)return res.status(400).json({ok:false, error:'No Excel file uploaded.'});
-  try{const wb=XLSX.readFile(req.file.path,{cellFormula:true,cellNF:true,cellText:false});res.json({ok:true, version:'6.0.0', file:req.file.originalname, sheets:workbookSummary(wb), sheetNames:wb.SheetNames});}
-  catch(e){res.status(422).json({ok:false, error:e.message});}finally{safe(()=>fs.unlinkSync(req.file.path));}
-});
-app.post('/api/import/excel', upload.single('file'), (req,res)=>{
-  if(!req.file)return res.status(400).json({ok:false, error:'No Excel file uploaded.'});
-  try{const wb=XLSX.readFile(req.file.path,{cellFormula:true,cellNF:true,cellText:false});const sheets=workbookSummary(wb);const requested=req.body.sheet||wb.SheetNames[0];const ws=wb.Sheets[requested];const rows=rowsFromSheet(ws);const mapping=req.body.mapping?JSON.parse(req.body.mapping):{};const normalized=normalizeRows(rows,mapping);res.json({ok:true, version:'6.0.0', file:req.file.originalname, sheets, selectedSheet:requested, rows:normalized, rawRows:rows.slice(0,100), formulas:XLSX.utils.sheet_to_json(ws||{}, {header:1,defval:null,raw:false})});}
-  catch(e){res.status(422).json({ok:false, error:e.message});}finally{safe(()=>fs.unlinkSync(req.file.path));}
-});
-app.post('/api/export/excel', (req,res)=>{
-  try{
-    const wb=XLSX.utils.book_new(), payload=req.body||{};
-    const sheets=payload.sheets||{Estimate:payload.result||payload};
-    for(const [name,data] of Object.entries(sheets)){
-      let ws;
-      if(Array.isArray(data)) ws=XLSX.utils.json_to_sheet(data);
-      else ws=XLSX.utils.json_to_sheet([data]);
-      XLSX.utils.book_append_sheet(wb, ws, String(name).slice(0,31));
-    }
-    const out=path.join(UPLOAD_DIR,'v6_estimate_'+Date.now()+'.xlsx');
-    XLSX.writeFile(wb,out,{bookType:'xlsx',cellFormula:true});
-    res.download(out,'engineering-estimate-v6.xlsx',()=>safe(()=>fs.unlinkSync(out)));
-  }catch(e){ res.status(422).json({ok:false, error:e.message}); }
-});
-// Helpers for Excel import
-function workbookSummary(wb) {
-  return wb.SheetNames.map(name => {
-    const ws = wb.Sheets[name];
-    const ref = ws['!ref'] || 'A1';
-    const range = XLSX.utils.decode_range(ref);
-    let formulas = 0, cells = 0;
-    for (let r = range.s.r; r <= range.e.r; r++) {
-      for (let c = range.s.c; c <= range.e.c; c++) {
-        const cell = ws[XLSX.utils.encode_cell({ r, c })];
-        if (!cell) continue;
-        cells++;
-        if (typeof cell.f === 'string' || (typeof cell.v === 'string' && cell.v.startsWith('='))) formulas++;
-      }
-    }
-    return { name, range: ref, rows: range.e.r + 1, columns: range.e.c + 1, cells, formulas };
-  });
-}
-function rowsFromSheet(ws) {
-  return XLSX.utils.sheet_to_json(ws, { header: 1, defval: null, raw: false });
-}
-function autoMap(headers) {
-  const tests = {
-    part: /part|item|code|number|no\.?$/i,
-    name: /part.?name|description|item.?name|name/i,
-    qty: /qty|quantity|amount/i,
-    material: /material|grade|steel|metal/i,
-    spec: /spec|size|dimension|designation/i,
-    process: /process|operation|manufact|mpp/i,
-    weight: /weight|kg/i,
-    cost: /cost|price|unit.?cost/i
+// -------- Excel import --------
+async function importExcel(id,type){
+  const f=$(id).files[0]; if(!f)return alert('Choose a file.');
+  const r=new FileReader();
+  r.onload=e=>{
+    const wb=XLSX.read(e.target.result,{type:'array'});
+    const ws=wb.Sheets[wb.SheetNames[0]];
+    DB[type]=XLSX.utils.sheet_to_json(ws,{defval:''});
+    $(type+'Msg').textContent=`Loaded ${DB[type].length} rows from ${f.name}`;
+    renderMapping(); renderPreview();
   };
-  const out = {};
-  for (const [k, re] of Object.entries(tests)) out[k] = headers.findIndex(h => re.test(clean(h)));
-  return out;
+  r.readAsArrayBuffer(f);
 }
-function normalizeRows(rows, mapping = {}) {
-  if (!rows.length) return [];
-  const headers = rows[0].map(clean);
-  const m = { ...autoMap(headers), ...mapping };
-  return rows.slice(1).map((r, i) => ({
-    id: clean(r[m.part] ?? `P-${i + 1}`),
-    name: clean(r[m.name]),
-    qty: num(r[m.qty], 1),
-    material: clean(r[m.material]),
-    specification: clean(r[m.spec]),
-    process: clean(r[m.process]),
-    weightKg: num(r[m.weight]),
-    unitCost: num(r[m.cost])
-  })).filter(x => x.name || x.id || x.material);
+function guess(cols,f){for(const c of cols){const n=norm(c); if((aliases[f]||[]).some(a=>n===a||n.includes(a)))return c;}return '';}
+function renderMapping(){
+  const b=DB.boq[0]?Object.keys(DB.boq[0]):[], m=DB.mpp[0]?Object.keys(DB.mpp[0]):[];
+  const fs=['part','desc','qty','material','spec','weight','process'];
+  let h='<div class="grid g2"><div><h3>BOQ</h3>'; fs.forEach(f=>h+=sel('b_'+f,guess(b,f),b)); h+='</div><div><h3>MPP</h3>'; fs.forEach(f=>h+=sel('m_'+f,guess(m,f),m)); h+='</div></div>';
+  $('mapping').innerHTML=h;
+}
+function sel(id,v,cs){return `<label>${id}</label><select id="${id}">${['',...cs].map(c=>`<option ${c===v?'selected':''}>${String(c).replace(/</g,'&lt;')}</option>`).join('')}</select>`;}
+function renderPreview(){const a=DB.boq.slice(0,5),b=DB.mpp.slice(0,5);$('preview').innerHTML='<h3>BOQ</h3>'+tab(a)+'<h3>MPP</h3>'+tab(b);}
+function tab(rows){if(!rows.length)return '<p class="muted">No data</p>';const c=Object.keys(rows[0]);return '<table><tr>'+c.map(x=>'<th>'+x+'</th>').join('')+'</tr>'+rows.map(r=>'<tr>'+c.map(x=>'<td>'+r[x]+'</td>').join('')+'</tr>').join('')+'</table>';}
+
+// -------- Parts --------
+function buildParts(){
+  const get=(r,t)=>{const x=$('b_'+t)?.value; return x?r[x]:'';};
+  DB.parts=DB.boq.map((r,i)=>({
+    part_no:get(r,'part')||'P-'+String(i+1).padStart(4,'0'),
+    description:get(r,'desc'),
+    qty:Number(get(r,'qty'))||1,
+    material:get(r,'material'),
+    specification:get(r,'spec'),
+    weight_kg:Number(get(r,'weight'))||0,
+    process:get(r,'process'),
+    match_score:0,
+    mpp_index:null,
+    material_price_usd_kg:0,
+    manual_material_cost:0,
+    dims:{type:inferDrawingType({description:get(r,'desc'),specification:get(r,'spec')})}
+  }));
+  matchParts(); renderParts(); calc();
+}
+function sim(a,b){a=norm(a);b=norm(b);if(!a||!b)return 0;if(a===b)return 100;const aa=a.split(' '),bb=new Set(b.split(' '));return Math.round(100*aa.filter(x=>x.length>1&&bb.has(x)).length/Math.max(aa.length,bb.size));}
+function matchParts(){
+  if(!DB.parts.length||!DB.mpp.length){renderParts();return;}
+  DB.parts.forEach(p=>{
+    let best=null, score=0;
+    DB.mpp.forEach((r,i)=>{
+      const id=$('m_part')?.value?r[$('m_part').value]:'';
+      const d=$('m_desc')?.value?r[$('m_desc').value]:'';
+      const s=Math.max(sim(p.part_no,id), sim(p.description,d), sim(p.part_no,d), sim(p.description,id));
+      if(s>score){score=s; best={r,i};}
+    });
+    if(best){p.match_score=score; if(score>=60){p.mpp_index=best.i; if(!p.material&&$('m_material')?.value)p.material=best.r[$('m_material').value]||''; if(!p.process&&$('m_process')?.value)p.process=best.r[$('m_process').value]||'';}}
+  });
+  renderParts();
+}
+function addPart(){
+  DB.parts.push({part_no:'P-'+String(DB.parts.length+1).padStart(4,'0'), description:'', qty:1, material:'', specification:'', weight_kg:0, process:'', match_score:0, mpp_index:null, material_price_usd_kg:0, manual_material_cost:0});
+  renderParts();
+}
+// Drawing functions
+function escapeHtml(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+function inferDrawingType(p){const x=norm((p.description||'')+' '+(p.specification||'')); if(x.includes('plate'))return'plate'; if(x.includes('column')||x.includes('beam')||x.includes('bar'))return'rectbar'; if(x.includes('pipe'))return'pipe'; if(x.includes('rod')||x.includes('brace'))return'rod'; return'custom';}
+function partDrawingSvg(p,large=false){
+  const d=p.dims||{}, type=d.type||inferDrawingType(p);
+  const W=large?820:112, H=large?560:72;
+  const line=large?2:1.4, fs=large?16:7;
+  let body=''; let label=escapeHtml(p.part_no||'PART');
+  if(type==='plate'||type==='sheet'){
+    body=`<rect x="${W*.25}" y="${H*.25}" width="${W*.5}" height="${H*.42}" fill="none" stroke="#111827" stroke-width="${line}"/><line x1="${W*.25}" y1="${H*.76}" x2="${W*.75}" y2="${H*.76}" stroke="#64748b" stroke-width="${line}"/><text x="50%" y="${H*.92}" text-anchor="middle" font-size="${fs}" fill="#334155">L ${d.length||''} × W ${d.width||''} × T ${d.thickness||''} mm</text>`;
+  }else if(type==='rod'||type==='cylinder'){
+    body=`<rect x="${W*.18}" y="${H*.38}" width="${W*.64}" height="${H*.22}" fill="none" stroke="#111827" stroke-width="${line}"/><ellipse cx="${W*.18}" cy="${H*.49}" rx="${H*.11}" ry="${H*.11}" fill="white" stroke="#111827" stroke-width="${line}"/><ellipse cx="${W*.82}" cy="${H*.49}" rx="${H*.11}" ry="${H*.11}" fill="white" stroke="#111827" stroke-width="${line}"/><text x="50%" y="${H*.85}" text-anchor="middle" font-size="${fs}" fill="#334155">L ${d.length||''} mm · Ø ${d.diameter||''} mm</text>`;
+  }else if(type==='pipe'){
+    body=`<rect x="${W*.18}" y="${H*.34}" width="${W*.64}" height="${H*.3}" fill="none" stroke="#111827" stroke-width="${line}"/><ellipse cx="${W*.18}" cy="${H*.49}" rx="${H*.15}" ry="${H*.15}" fill="white" stroke="#111827" stroke-width="${line}"/><ellipse cx="${W*.18}" cy="${H*.49}" rx="${H*.07}" ry="${H*.07}" fill="white" stroke="#111827" stroke-width="${line}"/><text x="50%" y="${H*.86}" text-anchor="middle" font-size="${fs}" fill="#334155">L ${d.length||''} · OD ${d.od||''} · ID ${d.id||''} mm</text>`;
+  }else{
+    body=`<rect x="${W*.3}" y="${H*.25}" width="${W*.4}" height="${H*.44}" fill="none" stroke="#111827" stroke-width="${line}"/><line x1="${W*.3}" y1="${H*.25}" x2="${W*.7}" y2="${H*.69}" stroke="#94a3b8" stroke-width="${line}"/><line x1="${W*.7}" y1="${H*.25}" x2="${W*.3}" y2="${H*.69}" stroke="#94a3b8" stroke-width="${line}"/><text x="50%" y="${H*.88}" text-anchor="middle" font-size="${fs}" fill="#334155">${label}</text>`;
+  }
+  return `<svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg"><rect width="100%" height="100%" fill="white"/><text x="${W*.04}" y="${H*.12}" font-size="${fs}" font-weight="700" fill="#0f172a">${label}</text>${body}</svg>`;
+}
+function openDrawing(p){const copy=JSON.parse(JSON.stringify(p)); $('drawingTitle').textContent=(copy.part_no||'Part')+' — 2D Drawing'; $('drawingSubtitle').textContent=copy.description||'Engineering part drawing'; $('drawingCanvas').innerHTML=partDrawingSvg(copy,true); const d=copy.dims||{}; $('drawingInfo').innerHTML=[['Part',copy.part_no||'—'],['Material',copy.material||'—'],['Quantity',copy.qty||0],['Dimensions',Object.entries(d).filter(([k])=>k!=='type'&&k!=='density'&&k!=='volume_m3').map(([k,v])=>k+': '+v).join(' · ')||'Not specified']].map(x=>`<div><small>${escapeHtml(x[0])}</small><b>${escapeHtml(x[1])}</b></div>`).join(''); $('drawingModal').classList.add('show');}
+function closeDrawing(){$('drawingModal').classList.remove('show');}
+function drawingButton(p){return `<div class="drawing-thumb" title="Open 2D drawing" onclick='openDrawing(${JSON.stringify(p).replace(/'/g,"&#39;")})'>${partDrawingSvg(p,false)}</div><div class="drawing-meta">2D • View</div>`;}
+function renderParts(){
+  const q=norm($('partQ')?.value||''), f=$('partF')?.value||'';
+  let a=DB.parts.filter(p=>(!q||norm([p.part_no,p.description,p.material,p.specification].join(' ')).includes(q))&&(!f||(f==='yes'?p.match_score>=60:p.match_score<60)));
+  let h='<table><tr><th>Part</th><th>2D Drawing</th><th>Description</th><th>Qty</th><th>Material</th><th>Spec</th><th>Weight kg</th><th>Match</th><th>Alibaba</th><th>USD/kg</th><th>Manual material ETB</th></tr>';
+  a.forEach(p=>{const i=DB.parts.indexOf(p); h+=`<tr><td><input value="${escapeHtml(p.part_no)}" onchange="updPart(${i},'part_no',this.value)"></td><td class="drawing-cell">${drawingButton(p)}</td><td><input value="${escapeHtml(p.description||'')}" onchange="updPart(${i},'description',this.value)"></td><td><input type="number" value="${p.qty}" onchange="updPart(${i},'qty',this.value)"></td><td><input value="${escapeHtml(p.material||'')}" onchange="updPart(${i},'material',this.value)"></td><td><input value="${escapeHtml(p.specification||'')}" onchange="updPart(${i},'specification',this.value)"></td><td><input type="number" value="${p.weight_kg||0}" onchange="updPart(${i},'weight_kg',this.value)"></td><td><span class="badge ${p.match_score>=60?'ok':'warn'}">${p.match_score||0}%</span></td><td><button class="btn sm" onclick="searchAlibaba(${i})">Search</button></td><td><input type="number" step=".001" value="${p.material_price_usd_kg||0}" onchange="updPart(${i},'material_price_usd_kg',this.value)"></td><td><input type="number" value="${p.manual_material_cost||0}" onchange="updPart(${i},'manual_material_cost',this.value)"></td></tr>`;});
+  $('partsTable').innerHTML=h+'</table>';
+}
+function updPart(i,k,v){DB.parts[i][k]=['qty','weight_kg','material_price_usd_kg','manual_material_cost'].includes(k)?Number(v)||0:v; calc();}
+function searchAlibaba(i){const p=DB.parts[i],q=encodeURIComponent([p.material,p.specification,p.description].filter(Boolean).join(' ')); window.open('https://www.alibaba.com/trade/search?SearchText='+q,'_blank');}
+
+// -------- Materials --------
+function renderMaterials(){
+  const groups={};
+  DB.parts.forEach(p=>{
+    const k=p.material||'Unspecified';
+    if(!groups[k]) groups[k]={material:k, weight:0, qty:0, cost:0};
+    const price=p.material_price_usd_kg||Number($('defaultPrice').value||1);
+    const fx=Number($('fx').value||150);
+    groups[k].weight += p.weight_kg*p.qty;
+    groups[k].qty += p.qty;
+    groups[k].cost += p.weight_kg*p.qty*price*fx + Number(p.manual_material_cost||0);
+  });
+  let h='<table><tr><th>Material</th><th>Qty</th><th>Weight kg</th><th>Current purchase cost</th><th>Alibaba</th></tr>';
+  Object.values(groups).forEach(x=>{const q=encodeURIComponent(x.material); h+=`<tr><td>${x.material}</td><td>${x.qty}</td><td>${x.weight.toFixed(3)}</td><td>${money(x.cost)}</td><td><button class="btn sm" onclick="window.open('https://www.alibaba.com/trade/search?SearchText=${q}','_blank')">Compare</button></td></tr>`;});
+  $('materialsTable').innerHTML=h+'</table>';
 }
 
-// --- Workflow summary ---
-app.get('/api/workflow/:projectId', async(req,res)=>{
-  try{
-    const sb = supabaseServer();
-    if (!sb) return res.status(503).json({ok:false, error:'Supabase not configured'});
-    const pid = req.params.projectId;
-    const out = { project_id: pid };
-    const tables = { boq:'boq_items', parts:'parts', mpp:'mpp_operations', materials:'materials', quotes:'supplier_quotes', po:'purchase_orders', production:'production_orders', actual:'actual_costs', estimates:'estimates' };
-    for (const [key, t] of Object.entries(tables)) {
-      const r = await sb.from(t).select('*', {count:'exact', head:false}).eq('project_id', pid);
-      if (r.error) throw r.error;
-      out[key] = { count: r.count || 0, data: r.data || [] };
-    }
-    const actual = out.actual.data.reduce((a,x)=>a+num(x.total_cost),0);
-    const planned = out.estimates.data.length ? num(out.estimates.data[0]?.result?.lines?.manufacturingCost) : 0;
-    out.variance = { plannedManufacturingCost: round(planned), actualCost: round(actual), variance: round(actual-planned), variancePct: planned ? round((actual-planned)/planned*100) : 0 };
-    res.json({ok:true, workflow:out});
-  }catch(e){ res.status(e.statusCode||400).json({ok:false, error:e.message}); }
-});
+// -------- Suppliers --------
+function addSupplier(){DB.suppliers.push({material:'',supplier:'',country:'',moq:1,price_usd_kg:0,freight_usd:0,duty_pct:0,lead_days:0,selected:false,url:''}); renderSuppliers();}
+function renderSuppliers(){
+  let h='<table><tr><th>Material</th><th>Supplier</th><th>Country</th><th>MOQ</th><th>USD/kg</th><th>Freight USD</th><th>Duty %</th><th>Lead days</th><th>Selected</th><th>Link</th></tr>';
+  DB.suppliers.forEach((s,i)=>h+=`<tr><td><input value="${s.material}" onchange="updSup(${i},'material',this.value)"></td><td><input value="${s.supplier}" onchange="updSup(${i},'supplier',this.value)"></td><td><input value="${s.country}" onchange="updSup(${i},'country',this.value)"></td><td><input type="number" value="${s.moq}" onchange="updSup(${i},'moq',this.value)"></td><td><input type="number" step=".001" value="${s.price_usd_kg}" onchange="updSup(${i},'price_usd_kg',this.value)"></td><td><input type="number" value="${s.freight_usd}" onchange="updSup(${i},'freight_usd',this.value)"></td><td><input type="number" value="${s.duty_pct}" onchange="updSup(${i},'duty_pct',this.value)"></td><td><input type="number" value="${s.lead_days}" onchange="updSup(${i},'lead_days',this.value)"></td><td><input type="checkbox" ${s.selected?'checked':''} onchange="updSup(${i},'selected',this.checked)"></td><td><input value="${s.url||''}" onchange="updSup(${i},'url',this.value)"></td></tr>`);
+  $('supplierTable').innerHTML=h+'</table>';
+}
+function updSup(i,k,v){DB.suppliers[i][k]=['moq','price_usd_kg','freight_usd','duty_pct','lead_days'].includes(k)?Number(v)||0:v; calc();}
 
-// --- Generic CRUD for all tables (Supabase) ---
-app.get('/api/data/:type', async(req,res)=>{
-  try{
-    const sb=supabaseServer(); if(!sb) return res.status(503).json({ok:false, error:'Supabase not configured'});
-    const table=tableFor(req.params.type);
-    let q=sb.from(table).select('*');
-    if(req.query.project_id) q=q.eq('project_id',req.query.project_id);
-    if(req.query.revision_id) q=q.eq('revision_id',req.query.revision_id);
-    if(req.query.part_id) q=q.eq('part_id',req.query.part_id);
-    if(req.query.limit) q=q.limit(Math.min(num(req.query.limit,1000),5000));
-    q=q.order('created_at',{ascending:false});
-    const {data,error}=await q; if(error) throw error;
-    res.json({ok:true, data});
-  }catch(e){ res.status(e.statusCode||400).json({ok:false, error:e.message}); }
-});
-app.get('/api/data/:type/:id', async(req,res)=>{
-  try{
-    const sb=supabaseServer(); if(!sb) return res.status(503).json({ok:false, error:'Supabase not configured'});
-    const {data,error}=await sb.from(tableFor(req.params.type)).select('*').eq('id',req.params.id).single();
-    if(error) throw error;
-    res.json({ok:true, data});
-  }catch(e){ res.status(404).json({ok:false, error:e.message}); }
-});
-app.post('/api/data/:type', async(req,res)=>{
-  try{
-    const sb=supabaseServer(); if(!sb) return res.status(503).json({ok:false, error:'Supabase not configured'});
-    const payload=req.body||{};
-    const {data,error}=await sb.from(tableFor(req.params.type)).insert(payload).select().single();
-    if(error) throw error;
-    await audit(req, sb, {project_id:payload.project_id, action:'CREATE', entity_type:req.params.type, entity_id:data.id, after_data:data});
-    res.status(201).json({ok:true, data});
-  }catch(e){ res.status(422).json({ok:false, error:e.message}); }
-});
-app.patch('/api/data/:type/:id', async(req,res)=>{
-  try{
-    const sb=supabaseServer(); if(!sb) return res.status(503).json({ok:false, error:'Supabase not configured'});
-    const table=tableFor(req.params.type);
-    const oldQ=await sb.from(table).select('*').eq('id',req.params.id).single(); if(oldQ.error) throw oldQ.error;
-    const {data,error}=await sb.from(table).update(req.body||{}).eq('id',req.params.id).select().single();
-    if(error) throw error;
-    await audit(req, sb, {project_id:data.project_id, action:'UPDATE', entity_type:req.params.type, entity_id:data.id, before_data:oldQ.data, after_data:data});
-    res.json({ok:true, data});
-  }catch(e){ res.status(422).json({ok:false, error:e.message}); }
-});
-app.delete('/api/data/:type/:id', async(req,res)=>{
-  try{
-    const sb=supabaseServer(); if(!sb) return res.status(503).json({ok:false, error:'Supabase not configured'});
-    const table=tableFor(req.params.type);
-    const oldQ=await sb.from(table).select('*').eq('id',req.params.id).single(); if(oldQ.error) throw oldQ.error;
-    const {error}=await sb.from(table).delete().eq('id',req.params.id);
-    if(error) throw error;
-    await audit(req, sb, {project_id:oldQ.data.project_id, action:'DELETE', entity_type:req.params.type, entity_id:req.params.id, before_data:oldQ.data});
-    res.json({ok:true});
-  }catch(e){ res.status(422).json({ok:false, error:e.message}); }
-});
+// -------- Operations (MPP) --------
+function addOp(){DB.ops.push({part_no:'',operation:'',setup_min:0,cycle_min:0,qty:1,rate:500,labour_rate:0}); renderOps(); calc();}
+function renderOps(){
+  let h='<table><tr><th>Part</th><th>Operation</th><th>Setup min</th><th>Cycle min</th><th>Qty</th><th>Rate ETB/hr</th><th>Labour ETB/hr</th><th>Cost</th></tr>';
+  DB.ops.forEach((o,i)=>{const c=(Number(o.setup_min)+Number(o.cycle_min)*Number(o.qty))/60*(Number(o.rate)+Number(o.labour_rate)); h+=`<tr><td><input value="${o.part_no}" onchange="updOp(${i},'part_no',this.value)"></td><td><input value="${o.operation}" onchange="updOp(${i},'operation',this.value)"></td><td><input type="number" value="${o.setup_min}" onchange="updOp(${i},'setup_min',this.value)"></td><td><input type="number" value="${o.cycle_min}" onchange="updOp(${i},'cycle_min',this.value)"></td><td><input type="number" value="${o.qty}" onchange="updOp(${i},'qty',this.value)"></td><td><input type="number" value="${o.rate}" onchange="updOp(${i},'rate',this.value)"></td><td><input type="number" value="${o.labour_rate}" onchange="updOp(${i},'labour_rate',this.value)"></td><td>${money(c)}</td></tr>`;});
+  $('opTable').innerHTML=h+'</table>';
+}
+function updOp(i,k,v){DB.ops[i][k]=Number.isFinite(Number(v))&&k!=='part_no'&&k!=='operation'?Number(v):v; renderOps(); calc();}
 
-// --- Revision snapshot ---
-app.post('/api/revisions/snapshot', async(req,res)=>{
-  try{
-    const sb=supabaseServer(); if(!sb) return res.status(503).json({ok:false, error:'Supabase not configured'});
-    const project_id = req.body.project_id;
-    if(!project_id) throw new Error('project_id required');
-    const revision_no = clean(req.body.revision_no||'R1');
-    const tables=['boq_items','parts','mpp_operations','materials','supplier_quotes'];
-    const snap={};
-    for(const t of tables){
-      let q=sb.from(t).select('*').eq('project_id',project_id);
-      if(t==='boq_items') q=q.eq('revision_id',req.body.revision_id||'00000000-0000-0000-0000-000000000000');
-      const r=await q; if(r.error) throw r.error;
-      snap[t]=r.data||[];
-    }
-    const ins=await sb.from('revisions').insert({project_id, revision_no, reason:req.body.reason||'Snapshot', status:'Draft', snapshot:snap, created_by:actor(req)}).select().single();
-    if(ins.error) throw ins.error;
-    await audit(req, sb, {project_id, action:'REVISION_SNAPSHOT', entity_type:'revision', entity_id:ins.data.id, after_data:ins.data});
-    res.status(201).json({ok:true, revision:ins.data, snapshot:snap});
-  }catch(e){ res.status(422).json({ok:false, error:e.message}); }
-});
+// -------- Calculation engine (Excel model) --------
+function excelFormulaCost(){
+  const fx=Number($('fx').value||150), waste=1+Number($('wastePct').value||0)/100;
+  const raw=DB.parts.reduce((a,p)=>a+(p.weight_kg*p.qty*(p.material_price_usd_kg||Number($('defaultPrice').value||0))*fx*waste)+Number(p.manual_material_cost||0),0);
+  const casting=DB.parts.filter(p=>norm(p.process).includes('cast')).reduce((a,p)=>a+p.manual_material_cost,0);
+  const rawPlusCasting=raw;
+  const std=DB.parts.reduce((a,p)=>a+Number(p.standard_cost||0)*p.qty,0);
+  const H10=rawPlusCasting+std;
+  const H13=H10*Number($('matOH').value||7)/100;
+  const machining=DB.ops.reduce((a,o)=>a+(Number(o.setup_min)+Number(o.cycle_min)*Number(o.qty))/60*Number(o.rate||0),0);
+  const directLabour=DB.ops.reduce((a,o)=>a+(Number(o.setup_min)+Number(o.cycle_min)*Number(o.qty))/60*Number(o.labour_rate||0),0);
+  const service=Number($('service').value||0);
+  const factory=(machining+directLabour)*Number($('factoryOH').value||0)/100;
+  const office=(H10+H13+directLabour+machining+service+factory)*Number($('officeOH').value||0)/100;
+  const H19=H10+H13+directLabour+machining+service+factory+office;
+  const profit=H19*Number($('profit').value||0)/100;
+  const contingency=H19*Number($('contingency').value||0)/100;
+  return {H10,H13,directLabour,machining,service,factory,office,H19,profit,contingency,total:H19+profit+contingency};
+}
+function calc(){
+  const e=excelFormulaCost();
+  DB.estimate=e;
+  $('ksell').textContent=money(e.total);
+  const rows=[['H10 Raw materials + standard parts',e.H10],['H13 Materials overhead (7% default)',e.H13],['E41 Direct labour',e.directLabour],['W9 Machining',e.machining],['L3 Service',e.service],['H24 Factory overhead',e.factory],['H15 Head-office overhead',e.office],['H19 Total manufacturing cost',e.H19],['Profit',e.profit],['Estimated selling price',e.total]];
+  let html='<table><tr><th>Excel item</th><th class="right">ETB</th></tr>'+rows.map(r=>`<tr><td>${r[0]}</td><td class="right">${money(r[1])}</td></tr>`).join('')+'</table>';
+  $('summary').innerHTML=html;
+  if($('estimateTable')) $('estimateTable').innerHTML=html;
+  renderMaterials();
+}
 
-// --- Project save (compatibility with V5) ---
-app.post('/api/project/save', async(req,res)=>{
-  try{
-    const sb=supabaseServer(); if(!sb) return res.status(503).json({ok:false, error:'Supabase not configured'});
-    const p=req.body.project||{};
-    const row={name:clean(p.name||p.projectName||'Untitled project'), customer:clean(p.customer), metadata:req.body, machine_qty:num(p.machineQty??p.machine_qty,1), currency:p.currency||'ETB', fx_rate:num(p.fxRate??p.fx_rate,150), status:p.status||'Draft'};
-    let q;
-    if(p.id) q=await sb.from('projects').update(row).eq('id',p.id).select().single();
-    else q=await sb.from('projects').insert(row).select().single();
-    if(q.error) throw q.error;
-    await audit(req, sb, {project_id:q.data.id, action:p.id?'UPDATE':'CREATE', entity_type:'project', entity_id:q.data.id, after_data:q.data});
-    res.json({ok:true, project:q.data});
-  }catch(e){ res.status(422).json({ok:false, error:e.message}); }
-});
-app.get('/api/project/:id', async(req,res)=>{
-  try{
-    const sb=supabaseServer(); if(!sb) return res.status(503).json({ok:false, error:'Supabase not configured'});
-    const {data,error}=await sb.from('projects').select('*').eq('id',req.params.id).single();
-    if(error) throw error;
-    res.json({ok:true, project:data});
-  }catch(e){ res.status(404).json({ok:false, error:e.message}); }
-});
+// -------- File upload (Supabase Storage) --------
+async function uploadAsset(){
+  if(!sb)return alert('Connect Supabase first.');
+  const f=$('assetFile').files[0]; if(!f)return alert('Choose a file.');
+  const path=(DB.projectId||'no-project')+'/'+($('filePart').value||'general')+'/'+Date.now()+'_'+f.name.replace(/[^a-zA-Z0-9._-]/g,'_');
+  const {error}=await sb.storage.from('engineering-files').upload(path,f,{upsert:false});
+  if(error)return alert(error.message);
+  const {error:e2}=await sb.from('part_files').insert({project_id:DB.projectId, part_no:$('filePart').value, storage_path:path, file_name:f.name, description:$('fileDesc').value});
+  if(e2)return alert(e2.message);
+  alert('File uploaded and linked.');
+}
 
-// --- Serve frontend ---
-app.get('*', (req,res)=>res.sendFile(path.join(PUBLIC_DIR, 'index.html')));
+// -------- Local storage backup --------
+function saveLocal(){
+  localStorage.setItem('ECV5',JSON.stringify({DB, fields:{projectName:$('projectName').value, estimateNo:$('estimateNo').value, customer:$('customer').value, machineQty:$('machineQty').value, fx:$('fx').value}}));
+  alert('Offline copy saved.');
+}
 
-// --- Start server ---
-app.listen(PORT, ()=>{
-  console.log(`Engineering Cost Estimator V6 running on http://localhost:${PORT}`);
-  console.log('Workflow: Project -> BOQ -> MPP -> Materials -> Procurement -> Production -> Actual Cost');
+// -------- V6-specific helpers --------
+async function refreshV6Workflow(){
+  if(!DB.projectId){$('workflowMsg').style.display='block'; $('workflowMsg').textContent='Open or save a project first.'; return;}
+  try{
+    const r=await V6Brain.workflow(DB.projectId), w=r.workflow;
+    $('kboq').textContent=w.boq.count; $('kmpp').textContent=w.mpp.count; $('kparts').textContent=w.parts.count;
+    $('kpo').textContent=w.po.count; $('kprod').textContent=w.production.count; $('kactual').textContent=money(w.variance.actualCost); $('kvar').textContent=money(w.variance.variance);
+    $('workflowMsg').style.display='block'; $('workflowMsg').textContent=`Planned: ${money(w.variance.plannedManufacturingCost)} | Actual: ${money(w.variance.actualCost)} | Variance: ${w.variance.variancePct}%`;
+  }catch(e){$('workflowMsg').style.display='block'; $('workflowMsg').textContent=e.message;}
+}
+async function exportV6Excel(){
+  try{ await V6Brain.exportExcel({sheets:{Project:{name:$('projectName').value, estimate:$('estimateNo').value, customer:$('customer').value}, Parts:DB.parts, MPP:DB.ops, Suppliers:DB.suppliers, Estimate:DB.estimate}}); }
+  catch(e){alert(e.message);}
+}
+
+// -------- Keyboard shortcuts --------
+document.addEventListener('keydown',e=>{if(e.key==='Escape') closeDrawing();});
+
+// -------- Initialisation --------
+window.addEventListener('load', ()=>{
+  const saved=localStorage.getItem('ECV5');
+  if(saved){
+    try{
+      const data=JSON.parse(saved);
+      if(data.DB){ DB.parts=data.DB.parts||[]; DB.suppliers=data.DB.suppliers||[]; DB.ops=data.DB.ops||[]; DB.boq=data.DB.boq||[]; DB.mpp=data.DB.mpp||[]; renderParts(); renderSuppliers(); renderOps(); calc(); }
+      if(data.fields){ $('projectName').value=data.fields.projectName||''; $('estimateNo').value=data.fields.estimateNo||''; $('customer').value=data.fields.customer||''; $('machineQty').value=data.fields.machineQty||1; $('fx').value=data.fields.fx||150; }
+    }catch(e){/* ignore */ }
+  }
+  calc(); renderMapping(); renderPreview(); renderParts(); renderMaterials(); renderSuppliers(); renderOps();
 });
+</script>
+</body>
+</html>
