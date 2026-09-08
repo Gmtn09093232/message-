@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Engineering Cost Estimator V6 – Multi‑Page PDF</title>
+<title>Engineering Cost Estimator V6 – Drawing‑First</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
@@ -25,7 +25,7 @@ label{display:block;font-weight:700;font-size:12px;color:#56657a;margin:8px 0 5p
 </style>
 </head>
 <body>
-<header><div class="brand"><div class="brandmark">⚙</div><div><h1>Engineering Cost Estimator V6</h1><small>Multi‑Page PDF Upload – Each page = one Part/BOQ/MPP</small></div></div><div class="topsearch"><span>⌕</span><input placeholder="Search projects, parts, materials, suppliers..."></div><div class="topuser"><span>🔔</span><div class="avatar">A</div><div><b>Admin</b><br><small>System Administrator</small></div><span>⌄</span></div></header>
+<header><div class="brand"><div class="brandmark">⚙</div><div><h1>Engineering Cost Estimator V6</h1><small>Multi‑Page PDF – Auto BOQ/MPP</small></div></div><div class="topsearch"><span>⌕</span><input placeholder="Search projects, parts, materials, suppliers..."></div><div class="topuser"><span>🔔</span><div class="avatar">A</div><div><b>Admin</b><br><small>System Administrator</small></div><span>⌄</span></div></header>
 <nav id="nav">
 <button class="active" onclick="page('dash',this)">Dashboard</button><button onclick="page('project',this)">Projects</button><button onclick="page('drawingUpload',this)">📐 Upload Drawing</button><button onclick="page('parts',this)">Parts</button><button onclick="page('boq',this)">BOQ</button><button onclick="page('process',this)">MPP</button><button onclick="page('materials',this)">Materials</button><button onclick="page('suppliers',this)">Suppliers</button><button onclick="page('estimate',this)">Cost</button><button onclick="page('files',this)">Files</button><button onclick="page('settings',this)">Settings</button>
 <div class="sidebar-status"><b>V6.0.0</b><br><span class="online"></span>System Online<br><br><span>▰ Powered by Supabase / PostgreSQL</span></div></nav>
@@ -74,17 +74,17 @@ label{display:block;font-weight:700;font-size:12px;color:#56657a;margin:8px 0 5p
 <div class="notice">📌 For a multi‑page PDF, the system will detect the number of pages and create a separate Part, BOQ, and MPP for every page.</div>
 
 <div class="grid g3">
-  <div><label>Drawing No. (optional)</label><input id="drawingNo" placeholder="LSS-T1-15-14-33"></div>
-  <div><label>Part Name</label><input id="uploadPartName" placeholder="Screw support-2"></div>
-  <div><label>Material</label><input id="uploadMaterial" placeholder="AISI 1020 plate"></div>
+  <div><label>DWG NO (optional)</label><input id="drawingNo" placeholder="LSS-T1-15-14-33"></div>
+  <div><label>PART NAME</label><input id="uploadPartName" placeholder="Screw support-2"></div>
+  <div><label>MATERIAL</label><input id="uploadMaterial" placeholder="AISI 1020 plate"></div>
 </div>
 <div class="grid g3">
-  <div><label>Quantity (QTY) per part</label><input id="uploadQty" type="number" value="2"></div>
-  <div><label>Weight (kg) per part</label><input id="uploadWeight" type="number" step="0.01" value="3217.61"></div>
+  <div><label>QTY per part</label><input id="uploadQty" type="number" value="2"></div>
+  <div><label>WEIGHT(g) per part</label><input id="uploadWeight" type="number" step="0.01" value="3217.61"></div>
   <div><label>Scale</label><input id="uploadScale" placeholder="1:3"></div>
 </div>
 <div class="grid g3">
-  <div><label>Overall Size</label><input id="uploadOverall" placeholder="310x250x10"></div>
+  <div><label>OVERALL SIZE</label><input id="uploadOverall" placeholder="310x250x10"></div>
   <div><label>Sheet Title</label><input id="uploadSheetTitle" placeholder="Screw support-2"></div>
   <div><label>Sheet Size</label><input id="uploadSheetSize" placeholder="A4"></div>
 </div>
@@ -104,24 +104,54 @@ label{display:block;font-weight:700;font-size:12px;color:#56657a;margin:8px 0 5p
 <div class="card"><h2>Uploaded Drawings</h2><div id="assetList"></div></div>
 </section>
 
-<!-- Parts, BOQ, MPP, etc. same as before -->
+<!-- Parts -->
 <section id="parts" class="page"><div class="card"><div class="grid g3"><div><label>Search</label><input id="partQ" oninput="renderParts()"></div><div><label>Filter</label><select id="partF" onchange="renderParts()"><option value="">All</option><option value="yes">Matched</option><option value="no">Unmatched</option></select></div><div><label>Actions</label><div class="actions"><button class="btn" onclick="addPart()">+ Part</button></div></div></div></div><div class="card"><div id="partsTable" class="tablewrap"></div></div></section>
 
+<!-- BOQ -->
 <section id="boq" class="page"><div class="card"><h2>Bill of Quantities (Auto‑generated)</h2><div class="actions"><button class="btn" onclick="addBoqRow()">+ Add BOQ Row</button></div></div><div class="card"><div id="boqTable" class="tablewrap"></div></div></section>
 
+<!-- MPP -->
 <section id="process" class="page"><div class="card"><h2>MPP Manufacturing Operations (Auto‑generated)</h2><div class="actions"><button class="btn" onclick="addOp()">+ Operation</button></div></div><div class="card"><div id="opTable" class="tablewrap"></div></div></section>
 
+<!-- Materials -->
 <section id="materials" class="page"><div class="card"><h2>Materials</h2><div class="grid g4"><div><label>Waste %</label><input id="wastePct" type="number" value="5" onchange="calc()"></div><div><label>Landed %</label><input id="landPct" type="number" value="8" onchange="calc()"></div><div><label>Density kg/m³</label><input id="density" type="number" value="7850" onchange="calc()"></div><div><label>Price USD/kg</label><input id="defaultPrice" type="number" value="1" step=".001" onchange="calc()"></div></div></div><div class="card"><div id="materialsTable" class="tablewrap"></div></div></section>
 
+<!-- Suppliers -->
 <section id="suppliers" class="page"><div class="card"><h2>Supplier comparison</h2><div class="actions"><button class="btn" onclick="addSupplier()">+ Supplier Quote</button></div></div><div class="card"><div id="supplierTable" class="tablewrap"></div></div></section>
 
+<!-- Estimate -->
 <section id="estimate" class="page"><div class="card"><h2>Cost Build‑up</h2>
 <div class="grid g3"><div><label>Material OH %</label><input id="matOH" type="number" value="7" onchange="calc()"></div><div><label>Factory OH %</label><input id="factoryOH" type="number" value="0" onchange="calc()"></div><div><label>Office OH %</label><input id="officeOH" type="number" value="0" onchange="calc()"></div><div><label>Service ETB</label><input id="service" type="number" value="0" onchange="calc()"></div><div><label>Profit %</label><input id="profit" type="number" value="10" onchange="calc()"></div><div><label>Contingency %</label><input id="contingency" type="number" value="0" onchange="calc()"></div></div><br><div id="estimateTable" class="tablewrap"></div></div></section>
 
+<!-- Files -->
 <section id="files" class="page"><div class="card"><h2>All Files</h2><div id="allFilesList"></div></div></section>
 
-<section id="settings" class="page"><div class="card"><h2>Supabase connection</h2><div class="notice">Use your project's Supabase URL and publishable/anon key.</div><label>Supabase URL</label><input id="sbUrl" placeholder="https://YOUR_PROJECT.supabase.co"><label>Publishable / anon key</label><input id="sbKey" type="password" placeholder="YOUR_PUBLISHABLE_KEY"><div class="actions"><button class="btn green" onclick="connect()">Connect</button><button class="btn gray" onclick="testConnection()">Test Database</button></div><p id="connMsg" class="muted"></p></div>
-<div class="card"><h2>Engineering rates</h2><div class="grid g3"><div><label>Machining ETB/hour</label><input id="machRate" type="number" value="500"></div><div><label>Labour ETB/hour</label><input id="labRate" type="number" value="250"></div><div><label>Design ETB/hour</label><input id="designRate" type="number" value="300"></div><div><label>QC ETB/hour</label><input id="qcRate" type="number" value="250"></div><div><label>Assembly ETB/hour</label><input id="assemblyRate" type="number" value="250"></div></div></div></section>
+<!-- Settings -->
+<section id="settings" class="page">
+<div class="card"><h2>Supabase connection</h2>
+<div class="notice">Use your project's Supabase URL and publishable/anon key.</div>
+<label>Supabase URL</label><input id="sbUrl" placeholder="https://YOUR_PROJECT.supabase.co">
+<label>Publishable / anon key</label><input id="sbKey" type="password" placeholder="YOUR_PUBLISHABLE_KEY">
+<div class="actions"><button class="btn green" onclick="connect()">Connect</button><button class="btn gray" onclick="testConnection()">Test Database</button></div>
+<p id="connMsg" class="muted"></p>
+</div>
+<div class="card"><h2>Database Schema Fix</h2>
+<p class="muted">If BOQ rows are not being created, run this SQL in your Supabase SQL Editor:</p>
+<textarea id="fixSql" rows="8" style="font-family:monospace;font-size:12px;width:100%;background:#f5f7fa;border:1px solid #cbd5e1;border-radius:6px;padding:8px;">ALTER TABLE boq_items ADD COLUMN IF NOT EXISTS project_id UUID REFERENCES projects(id);
+ALTER TABLE boq_items ADD COLUMN IF NOT EXISTS material_type TEXT;
+ALTER TABLE boq_items ADD COLUMN IF NOT EXISTS material_profile TEXT;
+ALTER TABLE boq_items ADD COLUMN IF NOT EXISTS blank_size TEXT;
+ALTER TABLE boq_items ADD COLUMN IF NOT EXISTS weight NUMERIC DEFAULT 0;
+ALTER TABLE parts ADD COLUMN IF NOT EXISTS material_type TEXT;
+ALTER TABLE parts ADD COLUMN IF NOT EXISTS material_profile TEXT;
+ALTER TABLE parts ADD COLUMN IF NOT EXISTS blank_size TEXT;
+ALTER TABLE mpp_operations ADD COLUMN IF NOT EXISTS machine TEXT;
+ALTER TABLE part_files ADD COLUMN IF NOT EXISTS metadata JSONB DEFAULT '{}';</textarea>
+<button class="btn orange" onclick="copySql()">📋 Copy SQL</button>
+</div>
+<div class="card"><h2>Engineering rates</h2>
+<div class="grid g3"><div><label>Machining ETB/hour</label><input id="machRate" type="number" value="500"></div><div><label>Labour ETB/hour</label><input id="labRate" type="number" value="250"></div><div><label>Design ETB/hour</label><input id="designRate" type="number" value="300"></div><div><label>QC ETB/hour</label><input id="qcRate" type="number" value="250"></div><div><label>Assembly ETB/hour</label><input id="assemblyRate" type="number" value="250"></div></div></div>
+</section>
 </main>
 
 <script>
@@ -232,7 +262,7 @@ async function getPdfPageCount(file) {
   }
 }
 
-// -------- Multi‑file / multi‑page upload --------
+// -------- Multi‑file / multi‑page upload with BOQ retry logic --------
 async function uploadDrawingAndGenerate(){
   if(!sb) return alert('Connect Supabase first.');
   if(!DB.projectId) return alert('Please save or open a project first.');
@@ -259,6 +289,7 @@ async function uploadDrawingAndGenerate(){
   }, 0) + 1;
   
   let totalPartsCreated = 0;
+  let boqErrors = [];
   const statusEl = $('uploadStatus');
   
   // Process each file
@@ -268,11 +299,9 @@ async function uploadDrawingAndGenerate(){
     if(file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf')) {
       pageCount = await getPdfPageCount(file);
     }
-    // For multi‑page PDF, we create one part per page
     for(let pg=0; pg<pageCount; pg++){
       let partNo;
       if(pageCount > 1) {
-        // For multi‑page, use suffix -01, -02, etc.
         const suffix = String(pg+1).padStart(2, '0');
         partNo = 'P-' + String(nextNum++).padStart(4, '0') + '-' + suffix;
       } else {
@@ -284,7 +313,6 @@ async function uploadDrawingAndGenerate(){
       }
       usedNumbers.add(partNo);
       
-      // Build metadata for this page/file
       const sheetNo = pageCount > 1 ? (pg+1)+'/'+pageCount : '1/1';
       const meta = {
         sheetNo: sheetNo,
@@ -301,12 +329,8 @@ async function uploadDrawingAndGenerate(){
         totalPages: pageCount
       };
       
-      // Upload file only once per file (if same path exists, skip upload and just create records)
+      // Upload file (unique path per part)
       const filePath = (DB.projectId || 'no-project') + '/' + partNo + '/' + Date.now() + '_' + file.name.replace(/[^a-zA-Z0-9._-]/g,'_');
-      // We'll upload only if this file hasn't been uploaded yet (we keep a simple cache)
-      // To simplify, we upload each time with a unique path (using timestamp). That's fine; we can duplicate.
-      // But to save space, we could check if file with same name already exists.
-      // We'll just upload each time – it's acceptable for small projects.
       const {error:uploadErr} = await sb.storage.from('engineering-files').upload(filePath, file, {upsert:false});
       if(uploadErr){ console.warn('Upload error for '+file.name+':', uploadErr); continue; }
       
@@ -342,7 +366,7 @@ async function uploadDrawingAndGenerate(){
       const {error:partErr} = await sb.from('parts').insert(partData);
       if(partErr){ console.warn('Part insert error:', partErr); continue; }
       
-      // Insert BOQ row
+      // Insert BOQ row with fallback
       const boqData = {
         project_id: DB.projectId,
         revision_id: DB.revisionId || null,
@@ -352,10 +376,60 @@ async function uploadDrawingAndGenerate(){
         material: material,
         specification: overall || '',
         drawing_no: drawingNoBase || file.name,
-        weight: weight
+        weight: weight,
+        material_type: 'Steel',
+        material_profile: 'Plate',
+        blank_size: overall || ''
       };
-      const {error:boqErr} = await sb.from('boq_items').insert(boqData);
-      if(boqErr) console.warn('BOQ insert error:', boqErr);
+      
+      // Try inserting with all columns; if fails, retry with base columns only
+      let boqOk = false;
+      try {
+        const {error:boqErr} = await sb.from('boq_items').insert(boqData);
+        if(!boqErr) {
+          boqOk = true;
+        } else {
+          console.warn('BOQ insert error (full):', boqErr);
+          // Retry with minimal columns
+          const minimalBoq = {
+            item_no: partNo,
+            description: partNameBase + (pageCount>1?' (p'+ (pg+1)+')':''),
+            qty: qty,
+            material: material,
+            specification: overall || '',
+            drawing_no: drawingNoBase || file.name,
+            weight: weight
+          };
+          // Try without project_id if missing
+          try {
+            const {error:retryErr} = await sb.from('boq_items').insert(minimalBoq);
+            if(!retryErr) {
+              boqOk = true;
+            } else {
+              // If still error, try without revision_id too
+              const minimalBoq2 = {
+                item_no: partNo,
+                description: partNameBase + (pageCount>1?' (p'+ (pg+1)+')':''),
+                qty: qty,
+                material: material,
+                specification: overall || '',
+                drawing_no: drawingNoBase || file.name,
+                weight: weight
+              };
+              const {error:retryErr2} = await sb.from('boq_items').insert(minimalBoq2);
+              if(!retryErr2) boqOk = true;
+              else {
+                boqErrors.push(`Part ${partNo}: ${retryErr2.message}`);
+                console.error('BOQ insert completely failed for', partNo, retryErr2);
+              }
+            }
+          } catch(e2) {
+            boqErrors.push(`Part ${partNo}: ${e2.message}`);
+          }
+        }
+      } catch(e) {
+        boqErrors.push(`Part ${partNo}: ${e.message}`);
+      }
       
       // Insert MPP ops
       const ops = generateMppOperations(partNo, partNameBase, qty);
@@ -371,14 +445,28 @@ async function uploadDrawingAndGenerate(){
   
   // Refresh
   await refreshAllData();
-  statusEl.innerHTML = `✅ ${totalPartsCreated} parts created from ${files.length} file(s). BOQ & MPP generated.`;
-  alert(`✅ ${totalPartsCreated} parts created. Check the Parts, BOQ, and MPP tabs.`);
+  
+  let msg = `✅ ${totalPartsCreated} parts created.`;
+  if(boqErrors.length) {
+    msg += `\n⚠️ BOQ errors for ${boqErrors.length} rows. Run the SQL fix in Settings -> Database Schema Fix.`;
+    alert(msg + '\n\nErrors:\n' + boqErrors.join('\n'));
+  } else {
+    alert(`✅ ${totalPartsCreated} parts created. BOQ & MPP generated.`);
+  }
+  statusEl.innerHTML = msg;
+  
   $('uploadFile').value = '';
   $('fileCount').textContent = '0 files selected';
   $('pageInfo').textContent = '';
 }
 
-// -------- Display page count when PDF selected --------
+// -------- Copy SQL to clipboard --------
+function copySql(){
+  const sql = $('fixSql').value;
+  navigator.clipboard.writeText(sql).then(() => alert('SQL copied to clipboard!'));
+}
+
+// -------- Show page count when PDF selected --------
 $('uploadFile')?.addEventListener('change', async function(){
   const files = this.files;
   const count = files.length;
@@ -395,7 +483,7 @@ $('uploadFile')?.addEventListener('change', async function(){
   }
 });
 
-// -------- Helper functions (same as before) --------
+// -------- Helper functions --------
 function inferDrawingType(p){
   const x=norm((p.description||'')+' '+(p.specification||''));
   if(x.includes('plate'))return'plate';
@@ -535,11 +623,11 @@ function drawingButton(p){
   return html;
 }
 
-// -------- Render functions (unchanged) --------
+// -------- Render Parts (with updated headers) --------
 function renderParts(){
   const q=norm($('partQ')?.value||''), f=$('partF')?.value||'';
   let a=DB.parts.filter(p=>(!q||norm([p.part_no,p.description,p.material,p.specification].join(' ')).includes(q))&&(!f||(f==='yes'?p.match_score>=60:p.match_score<60)));
-  let h='<table><tr><th>Part</th><th>Drawing</th><th>Description</th><th>Qty</th><th>Material</th><th>Mat.Type</th><th>Mat.Profile</th><th>Blank Size</th><th>Drawing No.</th><th>Spec</th><th>Weight kg</th><th>Match</th><th>Alibaba</th><th>USD/kg</th><th>Manual mat. ETB</th></tr>';
+  let h='<table><tr><th>PART NO</th><th>Drawing</th><th>PART NAME</th><th>QTY</th><th>MATERIAL</th><th>Mat.Type</th><th>Mat.Profile</th><th>OVERALL SIZE</th><th>DWG NO</th><th>Spec</th><th>WEIGHT(g)</th><th>Match</th><th>Alibaba</th><th>USD/kg</th><th>Manual mat. ETB</th></tr>';
   a.forEach(p=>{const i=DB.parts.indexOf(p); h+=`<tr><td><input value="${escapeHtml(p.part_no)}" onchange="updPart(${i},'part_no',this.value)"></td><td class="drawing-cell">${drawingButton(p)}</td><td><input value="${escapeHtml(p.description||'')}" onchange="updPart(${i},'description',this.value)"></td><td><input type="number" value="${p.qty}" onchange="updPart(${i},'qty',this.value)"></td><td><input value="${escapeHtml(p.material||'')}" onchange="updPart(${i},'material',this.value)"></td><td><input value="${escapeHtml(p.material_type||'')}" onchange="updPart(${i},'material_type',this.value)"></td><td><input value="${escapeHtml(p.material_profile||'')}" onchange="updPart(${i},'material_profile',this.value)"></td><td><input value="${escapeHtml(p.blank_size||'')}" onchange="updPart(${i},'blank_size',this.value)"></td><td><input value="${escapeHtml(p.drawing_no||'')}" onchange="updPart(${i},'drawing_no',this.value)"></td><td><input value="${escapeHtml(p.specification||'')}" onchange="updPart(${i},'specification',this.value)"></td><td><input type="number" value="${p.weight_kg||0}" onchange="updPart(${i},'weight_kg',this.value)"></td><td><span class="badge ${p.match_score>=60?'ok':'warn'}">${p.match_score||0}%</span></td><td><button class="btn sm" onclick="searchAlibaba(${i})">Search</button></td><td><input type="number" step=".001" value="${p.material_price_usd_kg||0}" onchange="updPart(${i},'material_price_usd_kg',this.value)"></td><td><input type="number" value="${p.manual_material_cost||0}" onchange="updPart(${i},'manual_material_cost',this.value)"></td></tr>`;});
   $('partsTable').innerHTML=h+'</table>';
 }
@@ -550,9 +638,9 @@ function addPart(){
   renderParts();
 }
 
-// -------- Render BOQ --------
+// -------- Render BOQ (with updated headers) --------
 function renderBoq(){
-  let h='<table><tr><th>Item No.</th><th>Description</th><th>Qty</th><th>Material</th><th>Material Type</th><th>Profile</th><th>Blank Size</th><th>Drawing No.</th><th>Weight (kg)</th><th>Actions</th></tr>';
+  let h='<table><tr><th>PART NO</th><th>PART NAME</th><th>QTY</th><th>MATERIAL</th><th>Material Type</th><th>Profile</th><th>OVERALL SIZE</th><th>DWG NO</th><th>WEIGHT(g)</th><th>Actions</th></tr>';
   DB.boq.forEach((row,i)=>{
     h+=`<tr><td><input value="${row.item_no||''}" onchange="updBoq(${i},'item_no',this.value)"></td>
         <td><input value="${row.description||''}" onchange="updBoq(${i},'description',this.value)"></td>
