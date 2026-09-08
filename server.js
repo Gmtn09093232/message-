@@ -473,18 +473,16 @@ app.get('/api/project/:id', async(req,res)=>{
   }catch(e){ res.status(404).json({ok:false, error:e.message}); }
 });
 
-// --- Serve frontend ---
-// ... all API routes above
-
-// Serve static files from the project root
+// Serve static files from the current directory (where server.js lives)
 app.use(express.static(__dirname));
 
-// Catch‑all: serve index.html for client‑side routing
+// Fallback: serve index.html for all other routes (including "/")
 app.get('/*splat', (req, res) => {
   res.sendFile(path.join(__dirname, 'index.html'));
 });
 
-const PORT = process.env.PORT || 2000;
-app.listen(PORT, () => {
-  console.log(`Server running on http://localhost:${PORT}`);
+// --- Start server ---
+app.listen(PORT, ()=>{
+  console.log(`Engineering Cost Estimator V6 running on http://localhost:${PORT}`);
+  console.log('Workflow: Project -> BOQ -> MPP -> Materials -> Procurement -> Production -> Actual Cost');
 });
