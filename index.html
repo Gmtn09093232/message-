@@ -7,7 +7,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <style>
-/* -------- same as before, keep all styles -------- */
+/* -------- same as before -------- */
 :root{--nav:#0b1d33;--nav2:#112a47;--blue:#1683f5;--blue2:#0d6efd;--bg:#f3f6fa;--card:#fff;--line:#e2e8f0;--muted:#667085;--good:#16a36a;--warn:#f59e0b;--bad:#ef4444;--purple:#7357e8;--shadow:0 3px 14px rgba(15,35,60,.07)}
 *{box-sizing:border-box}body{margin:0;background:var(--bg);font:14px Inter,Arial,sans-serif;color:#172033}
 header{height:64px;background:linear-gradient(90deg,#0b1d33,#12355a);color:#fff;padding:10px 24px 10px 24px;position:fixed;left:0;right:0;top:0;z-index:50;display:flex;align-items:center;gap:20px;box-shadow:0 2px 12px rgba(0,0,0,.15)}
@@ -327,7 +327,7 @@ function renderParts(){
 function updPart(i,k,v){DB.parts[i][k]=['qty','weight_kg','material_price_usd_kg','manual_material_cost'].includes(k)?Number(v)||0:v; calc();}
 function searchAlibaba(i){const p=DB.parts[i],q=encodeURIComponent([p.material,p.specification,p.description].filter(Boolean).join(' ')); window.open('https://www.alibaba.com/trade/search?SearchText='+q,'_blank');}
 
-// -------- Materials (unchanged) --------
+// -------- Materials --------
 function renderMaterials(){
   const groups={};
   DB.parts.forEach(p=>{
@@ -344,7 +344,7 @@ function renderMaterials(){
   $('materialsTable').innerHTML=h+'</table>';
 }
 
-// -------- Suppliers (unchanged) --------
+// -------- Suppliers --------
 function addSupplier(){DB.suppliers.push({material:'',supplier:'',country:'',moq:1,price_usd_kg:0,freight_usd:0,duty_pct:0,lead_days:0,selected:false,url:''}); renderSuppliers();}
 function renderSuppliers(){
   let h='<table><tr><th>Material</th><th>Supplier</th><th>Country</th><th>MOQ</th><th>USD/kg</th><th>Freight USD</th><th>Duty %</th><th>Lead days</th><th>Selected</th><th>Link</th></tr>';
@@ -392,40 +392,40 @@ function calc(){
   renderMaterials();
 }
 
-// -------- File upload and listing --------
+// -------- File upload (with project check) --------
 async function uploadAsset(){
-  if(!sb)return alert('Connect Supabase first.');
-  const f=$('assetFile').files[0]; if(!f)return alert('Choose a file.');
-  const partNo=$('filePart').value.trim();
-  if(!partNo)return alert('Enter a Part ID.');
-  const path=(DB.projectId||'no-project')+'/'+partNo+'/'+Date.now()+'_'+f.name.replace(/[^a-zA-Z0-9._-]/g,'_');
-  const {data:uploadData, error:uploadErr}=await sb.storage.from('engineering-files').upload(path,f,{upsert:false});
-  if(uploadErr)return alert(uploadErr.message);
-  // Get public URL
-  const {data:urlData}=sb.storage.from('engineering-files').getPublicUrl(path);
-  const fileUrl=urlData.publicUrl;
-  const {error:insertErr}=await sb.from('part_files').insert({
-    project_id:DB.projectId,
-    part_no:partNo,
-    storage_path:path,
-    file_name:f.name,
-    mime_type:f.type,
-    file_size:f.size,
-    description:$('fileDesc').value || '',
-    uploaded_by:null
+  if(!sb) return alert('Connect Supabase first.');
+  if(!DB.projectId) return alert('Please save or open a project before uploading a drawing.');
+  const f = $('assetFile').files[0];
+  if(!f) return alert('Choose a file.');
+  const partNo = $('filePart').value.trim();
+  if(!partNo) return alert('Enter a Part ID.');
+  const path = (DB.projectId || 'no-project') + '/' + partNo + '/' + Date.now() + '_' + f.name.replace(/[^a-zA-Z0-9._-]/g,'_');
+  const {data:uploadData, error:uploadErr} = await sb.storage.from('engineering-files').upload(path, f, {upsert:false});
+  if(uploadErr) return alert(uploadErr.message);
+  const {data:urlData} = sb.storage.from('engineering-files').getPublicUrl(path);
+  const fileUrl = urlData.publicUrl;
+  const {error:insertErr} = await sb.from('part_files').insert({
+    project_id: DB.projectId,
+    part_no: partNo,
+    storage_path: path,
+    file_name: f.name,
+    mime_type: f.type,
+    file_size: f.size,
+    description: $('fileDesc').value || '',
+    uploaded_by: null
   });
-  if(insertErr)return alert(insertErr.message);
-  alert('File uploaded and linked to part '+partNo);
-  // Add to DB.files
-  DB.files.push({part_no:partNo, storage_path:path, file_name:f.name, description:$('fileDesc').value});
+  if(insertErr) return alert(insertErr.message);
+  alert('File uploaded and linked to part ' + partNo);
+  DB.files.push({part_no: partNo, storage_path: path, file_name: f.name, description: $('fileDesc').value});
   renderFiles();
   renderParts(); // update drawing buttons
 }
 async function loadFilesForProject(){
-  if(!sb || !DB.projectId)return alert('Open a project first.');
-  const {data,error}=await sb.from('part_files').select('*').eq('project_id',DB.projectId);
-  if(error)return alert(error.message);
-  DB.files=data||[];
+  if(!sb || !DB.projectId) return alert('Open a project first.');
+  const {data,error} = await sb.from('part_files').select('*').eq('project_id', DB.projectId);
+  if(error) return alert(error.message);
+  DB.files = data || [];
   renderFiles();
   renderParts();
 }
