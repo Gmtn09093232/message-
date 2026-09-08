@@ -474,11 +474,11 @@ app.get('/api/project/:id', async(req,res)=>{
 });
 
 // Serve static files from the current directory (where server.js lives)
-app.use(express.static(__dirname));
+app.use(express.static());
 
 // Fallback: serve index.html for all other routes (including "/")
 app.get('/*splat', (req, res) => {
-  res.sendFile(path.join(__dirname, 'index.html'));
+  res.sendFile(path.join('index.html'));
 });
 
 // --- Start server ---
