@@ -3,14 +3,13 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Engineering Cost Estimator V6 – Auto OCR</title>
+<title>Engineering Cost Estimator V6 – Auto OCR (Colon)</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-<!-- pdf.js for rendering PDF pages -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
-<!-- Tesseract.js for OCR -->
 <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 <style>
+/* -------- same styles as before -------- */
 :root{--nav:#0b1d33;--nav2:#112a47;--blue:#1683f5;--blue2:#0d6efd;--bg:#f3f6fa;--card:#fff;--line:#e2e8f0;--muted:#667085;--good:#16a36a;--warn:#f59e0b;--bad:#ef4444;--purple:#7357e8;--shadow:0 3px 14px rgba(15,35,60,.07)}
 *{box-sizing:border-box}body{margin:0;background:var(--bg);font:14px Inter,Arial,sans-serif;color:#172033}
 header{height:64px;background:linear-gradient(90deg,#0b1d33,#12355a);color:#fff;padding:10px 24px 10px 24px;position:fixed;left:0;right:0;top:0;z-index:50;display:flex;align-items:center;gap:20px;box-shadow:0 2px 12px rgba(0,0,0,.15)}
@@ -28,7 +27,7 @@ label{display:block;font-weight:700;font-size:12px;color:#56657a;margin:8px 0 5p
 </style>
 </head>
 <body>
-<header><div class="brand"><div class="brandmark">⚙</div><div><h1>Engineering Cost Estimator V6</h1><small>Auto OCR – Upload PDF, Extract BOQ/MPP</small></div></div><div class="topsearch"><span>⌕</span><input placeholder="Search projects, parts, materials, suppliers..."></div><div class="topuser"><span>🔔</span><div class="avatar">A</div><div><b>Admin</b><br><small>System Administrator</small></div><span>⌄</span></div></header>
+<header><div class="brand"><div class="brandmark">⚙</div><div><h1>Engineering Cost Estimator V6</h1><small>Auto OCR – Extract after colon</small></div></div><div class="topsearch"><span>⌕</span><input placeholder="Search projects, parts, materials, suppliers..."></div><div class="topuser"><span>🔔</span><div class="avatar">A</div><div><b>Admin</b><br><small>System Administrator</small></div><span>⌄</span></div></header>
 <nav id="nav">
 <button class="active" onclick="page('dash',this)">Dashboard</button><button onclick="page('project',this)">Projects</button><button onclick="page('drawingUpload',this)">📐 Upload Drawing</button><button onclick="page('parts',this)">Parts</button><button onclick="page('boq',this)">BOQ</button><button onclick="page('process',this)">MPP</button><button onclick="page('materials',this)">Materials</button><button onclick="page('suppliers',this)">Suppliers</button><button onclick="page('estimate',this)">Cost</button><button onclick="page('files',this)">Files</button><button onclick="page('settings',this)">Settings</button>
 <div class="sidebar-status"><b>V6.0.0</b><br><span class="online"></span>System Online<br><br><span>▰ Powered by Supabase / PostgreSQL</span></div></nav>
@@ -72,9 +71,9 @@ label{display:block;font-weight:700;font-size:12px;color:#56657a;margin:8px 0 5p
 
 <!-- Drawing Upload -->
 <section id="drawingUpload" class="page">
-<div class="card"><h2>📐 Upload Drawing – Auto OCR Extraction</h2>
-<p class="muted">Upload a PDF – the system will automatically detect title‑block pages, extract <b>PART NAME, DWG NO, QTY, WEIGHT(g), OVERALL SIZE</b> and create Parts, BOQ, and MPP for each.</p>
-<div class="notice">📌 OCR may take a few seconds per page. A progress bar will show the status. Non‑PDF files (images) will use the manual metadata below.</div>
+<div class="card"><h2>📐 Upload Drawing – Auto OCR Extraction (after colon)</h2>
+<p class="muted">Upload a PDF – the system will extract <b>PART NAME, DWG NO, QTY, WEIGHT(g), OVERALL SIZE</b> <b>only after the colon (:)</b> and create Parts, BOQ, and MPP for each title‑block page.</p>
+<div class="notice">📌 OCR may take a few seconds per page. Progress bar shows status.</div>
 
 <div class="grid g3">
   <div><label>DWG NO (override)</label><input id="drawingNo" placeholder="Optional manual override"></div>
@@ -242,6 +241,44 @@ async function refreshAllData(){
   } catch(e){ console.error('Refresh error:', e); alert('Refresh error: '+e.message); }
 }
 
+// -------- Extract after colon --------
+function extractField(lines, label) {
+  const labelLower = label.toLowerCase();
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    const lineLower = line.toLowerCase();
+    if (lineLower.includes(labelLower)) {
+      // Find colon position
+      const colonIndex = line.indexOf(':');
+      if (colonIndex !== -1) {
+        let value = line.substring(colonIndex + 1).trim();
+        if (value) {
+          // Remove trailing common labels if accidentally included
+          const stopWords = ['PART NAME', 'DWG NO', 'QTY', 'WEIGHT', 'OVERALL', 'MATERIAL', 'SCALE', 'SHEET'];
+          for (const sw of stopWords) {
+            const idx = value.toUpperCase().indexOf(sw);
+            if (idx !== -1) {
+              value = value.substring(0, idx).trim();
+              break;
+            }
+          }
+          return value;
+        }
+      }
+      // If no colon, check next line
+      if (i + 1 < lines.length) {
+        const nextLine = lines[i+1].trim();
+        // Avoid taking a line that itself contains a label
+        const nextLower = nextLine.toLowerCase();
+        if (!nextLower.includes('part name') && !nextLower.includes('dwg no') && !nextLower.includes('qty') && !nextLower.includes('weight') && !nextLower.includes('overall') && !nextLower.includes('material') && !nextLower.includes('scale') && !nextLower.includes('sheet')) {
+          return nextLine;
+        }
+      }
+    }
+  }
+  return '';
+}
+
 // -------- OCR extraction from PDF --------
 async function extractMetadataFromPage(pageNum, page) {
   // Render page to canvas
@@ -261,38 +298,22 @@ async function extractMetadataFromPage(pageNum, page) {
     }
   });
   
-  // Parse the text to find title block fields
   const lines = text.split('\n').map(l => l.trim()).filter(l => l.length > 0);
-  const fullText = lines.join(' ');
+  if (lines.length === 0) return null;
   
-  // Helper to extract value after a label (case‑insensitive)
-  function extract(label) {
-    const regex = new RegExp(label + '\\s*[:：]?\\s*([^\\n\\r]+)', 'i');
-    const match = fullText.match(regex);
-    if (match) return match[1].trim();
-    // Try with label on a separate line
-    for (let i=0; i<lines.length; i++) {
-      if (lines[i].toLowerCase().includes(label.toLowerCase())) {
-        // look at next line
-        if (i+1 < lines.length && !lines[i+1].match(/^(PART NAME|DWG NO|QTY|WEIGHT|OVERALL|MATERIAL|SCALE|SHEET)/i)) {
-          return lines[i+1].trim();
-        }
-      }
-    }
-    return '';
-  }
+  // Extract fields using colon-based extraction
+  const partName = extractField(lines, 'PART NAME') || extractField(lines, 'PART');
+  const dwgNo = extractField(lines, 'DWG NO') || extractField(lines, 'DWG');
+  const qtyStr = extractField(lines, 'QTY');
+  const weightStr = extractField(lines, 'WEIGHT');
+  const overall = extractField(lines, 'OVERALL SIZE') || extractField(lines, 'OVERALL');
+  const material = extractField(lines, 'MATERIAL');
+  const scale = extractField(lines, 'SCALE');
+  const sheetNo = extractField(lines, 'SHEET No') || extractField(lines, 'SHEET');
   
-  // Extract fields
-  const partName = extract('PART NAME') || extract('PART') || '';
-  const dwgNo = extract('DWG NO') || extract('DWG') || '';
-  const qty = parseInt(extract('QTY')) || 1;
-  const weight = parseFloat(extract('WEIGHT').replace(/[, ]/g, '')) || 0;
-  const overall = extract('OVERALL SIZE') || extract('OVERALL') || '';
-  const material = extract('MATERIAL') || '';
-  const scale = extract('SCALE') || '';
-  const sheetNo = extract('SHEET No') || extract('SHEET') || '';
+  const qty = parseInt(qtyStr) || 1;
+  const weight = parseFloat(weightStr.replace(/[, ]/g, '')) || 0;
   
-  // Only return if we have at least a part name or dwg no
   if (partName || dwgNo) {
     return { partName, dwgNo, qty, weight, overall, material, scale, sheetNo };
   }
@@ -387,15 +408,12 @@ async function uploadDrawingAndGenerate(){
         sourceFile: file.name
       };
       
-      // Upload file (if PDF, we upload the whole file once, but we'll store the same file for each part)
-      // To avoid duplication, we upload once per file and reuse path.
+      // Upload file (once per file)
       let storagePath = null;
-      // Try to find existing file in DB.files with same name and size
       const existingFile = DB.files.find(f => f.file_name === file.name && f.file_size === file.size);
       if (existingFile) {
         storagePath = existingFile.storage_path;
       } else {
-        // Upload new file
         const path = (DB.projectId || 'no-project') + '/' + partNo + '/' + Date.now() + '_' + file.name.replace(/[^a-zA-Z0-9._-]/g,'_');
         const {error:uploadErr} = await sb.storage.from('engineering-files').upload(path, file, {upsert:false});
         if(uploadErr){ 
@@ -403,7 +421,6 @@ async function uploadDrawingAndGenerate(){
           continue; 
         }
         storagePath = path;
-        // Insert file record (once)
         const {error:insertFileErr} = await sb.from('part_files').insert({
           project_id: DB.projectId,
           part_no: partNo,
