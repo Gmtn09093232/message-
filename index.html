@@ -37,7 +37,7 @@ label{display:block;font-weight:700;font-size:12px;color:#56657a;margin:8px 0 5p
 </div>
 
 <main>
-<!-- Dashboard (same as before) -->
+<!-- Dashboard -->
 <section id="dash" class="page active">
 <div class="card projecthero"><img class="projectphoto" src="/project-steel.jpg" alt="Steel structure project"><div><div class="section-head"><div><span class="badge ok">● In Production</span> <span class="badge">Rev: R03</span><h2 style="display:inline;margin-left:8px">Project: 20 TPH Screw Conveyor</h2></div><button class="btn gray no-print" onclick="page('project',document.querySelectorAll('#nav button')[1])">Edit</button></div><div class="muted">Amhara Metal Industry · Limestone Screw Conveyor.</div><div class="hero-meta"><div><small>Start Date</small><b>2025-08-01</b></div><div><small>End Date</small><b>2025-10-30</b></div><div><small>Estimate</small><b id="heroEstimate">—</b></div><div><small>Revision</small><b>BOQ-R03</b></div></div></div></div>
 <div class="grid g4"><div class="kpi"><span class="muted">BOQ Value</span><b id="kboqValue">ETB 248,500</b></div><div class="kpi"><span class="muted">Material Cost</span><b id="kmat">ETB 91,240</b></div><div class="kpi"><span class="muted">Purchase Cost</span><b id="kpurchase">ETB 103,800</b></div><div class="kpi"><span class="muted">Actual Cost</span><b id="kactualTop">ETB 76,420</b></div></div>
@@ -46,7 +46,7 @@ label{display:block;font-weight:700;font-size:12px;color:#56657a;margin:8px 0 5p
 <div><div class="card"><div class="section-head"><h2>Recent Activity</h2><span class="mini-link">View All</span></div><div class="activity"><div class="activity-icon">📐</div><div><b>Drawing uploaded for Screw support-2</b><small>10 min ago</small></div></div><div class="activity"><div class="activity-icon">▣</div><div><b>BOQ row auto‑generated</b><small>10 min ago</small></div></div><div class="activity"><div class="activity-icon">⚙</div><div><b>MPP ops auto‑generated</b><small>10 min ago</small></div></div></div></div></div>
 </section>
 
-<!-- Project (same) -->
+<!-- Project -->
 <section id="project" class="page">
 <div class="card"><h2>Project master</h2><div class="grid g3">
 <div><label>Project name</label><input id="projectName"></div><div><label>Estimate number</label><input id="estimateNo"></div><div><label>Customer</label><input id="customer"></div>
@@ -62,7 +62,7 @@ label{display:block;font-weight:700;font-size:12px;color:#56657a;margin:8px 0 5p
 
 <div class="grid g3">
   <div><label>Drawing No. (DWG NO)</label><input id="drawingNo" placeholder="LSS-T1-15-14-33"></div>
-  <div><label>Part No.</label><input id="uploadPartNo" placeholder="P-1001"></div>
+  <div><label>Part No.</label><input id="uploadPartNo" placeholder="P-1001 (leave blank to auto-generate)"></div>
   <div><label>Part Name</label><input id="uploadPartName" placeholder="Screw support-2"></div>
 </div>
 <div class="grid g3">
@@ -93,7 +93,7 @@ label{display:block;font-weight:700;font-size:12px;color:#56657a;margin:8px 0 5p
 <!-- Parts -->
 <section id="parts" class="page"><div class="card"><div class="grid g3"><div><label>Search</label><input id="partQ" oninput="renderParts()"></div><div><label>Filter</label><select id="partF" onchange="renderParts()"><option value="">All</option><option value="yes">Matched</option><option value="no">Unmatched</option></select></div><div><label>Actions</label><div class="actions"><button class="btn" onclick="addPart()">+ Part</button></div></div></div></div><div class="card"><div id="partsTable" class="tablewrap"></div></div></section>
 
-<!-- BOQ (read‑only / editable) -->
+<!-- BOQ -->
 <section id="boq" class="page"><div class="card"><h2>Bill of Quantities (Auto‑generated from Drawings)</h2><p class="muted">BOQ rows are automatically created when you upload a drawing. You can edit them manually.</p><div class="actions"><button class="btn" onclick="addBoqRow()">+ Add BOQ Row</button></div></div><div class="card"><div id="boqTable" class="tablewrap"></div></div></section>
 
 <!-- MPP -->
@@ -205,7 +205,7 @@ async function selectProject(id){
   } catch(e){ alert(e.message); }
 }
 
-// -------- Drawing Upload – Auto‑generate BOQ & MPP --------
+// -------- Drawing Upload – Auto‑generate BOQ & MPP (with UPSERT fix) --------
 async function uploadDrawingAndGenerate(){
   if(!sb) return alert('Connect Supabase first.');
   if(!DB.projectId) return alert('Please save or open a project first.');
@@ -213,7 +213,7 @@ async function uploadDrawingAndGenerate(){
   const file = $('uploadFile').files[0];
   if(!file) return alert('Choose a drawing file.');
   
-  const partNo = $('uploadPartNo').value.trim() || 'P-'+String(DB.parts.length+1).padStart(4,'0');
+  let partNo = $('uploadPartNo').value.trim();
   const partName = $('uploadPartName').value.trim() || 'Part';
   const material = $('uploadMaterial').value.trim() || 'AISI 1020';
   const qty = Number($('uploadQty').value) || 1;
@@ -224,6 +224,16 @@ async function uploadDrawingAndGenerate(){
   const sheetTitle = $('uploadSheetTitle').value.trim() || partName;
   const sheetSize = $('uploadSheetSize').value.trim() || 'A4';
   const drawingNo = $('drawingNo').value.trim() || '';
+  
+  // If part number is empty, auto-generate
+  if(!partNo){
+    const {data:existingParts} = await sb.from('parts').select('part_no').eq('project_id', DB.projectId);
+    const maxNum = existingParts.reduce((max, p) => {
+      const match = p.part_no.match(/^P-(\d+)$/);
+      return match ? Math.max(max, parseInt(match[1])) : max;
+    }, 0);
+    partNo = 'P-' + String(maxNum + 1).padStart(4, '0');
+  }
   
   // 1. Upload file to Supabase Storage
   const path = (DB.projectId || 'no-project') + '/' + partNo + '/' + Date.now() + '_' + file.name.replace(/[^a-zA-Z0-9._-]/g,'_');
@@ -261,8 +271,8 @@ async function uploadDrawingAndGenerate(){
   });
   if(insertFileErr) return alert('File record error: '+insertFileErr.message);
   
-  // 4. Auto‑generate PART
-  const newPart = {
+  // 4. UPSERT PART – check if exists, update or insert
+  const partData = {
     project_id: DB.projectId,
     part_no: partNo,
     description: partName,
@@ -271,20 +281,39 @@ async function uploadDrawingAndGenerate(){
     specification: overall || '',
     weight_kg: weight || 0,
     process: 'Fabrication',
-    match_score: 0,
     material_price_usd_kg: 0,
     manual_material_cost: 0,
-    materialType: 'Steel',
-    materialProfile: 'Plate',
-    blankSize: overall || '',
-    drawingNo: drawingNo,
-    dims: { type: inferDrawingType({description: partName, specification: overall}) }
+    material_type: 'Steel',
+    material_profile: 'Plate',
+    blank_size: overall || '',
+    drawing_no: drawingNo,
+    geometry: { type: inferDrawingType({description: partName, specification: overall}) }
   };
-  const {data:partData, error:partErr} = await sb.from('parts').insert(newPart).select().single();
-  if(partErr) return alert('Part error: '+partErr.message);
   
-  // 5. Auto‑generate BOQ row
-  const boqRow = {
+  // Check existing part
+  const {data:existingPart} = await sb.from('parts')
+    .select('id')
+    .eq('project_id', DB.projectId)
+    .eq('part_no', partNo)
+    .maybeSingle();
+  
+  let partErr = null;
+  if(existingPart){
+    // Update existing
+    const {error:updateErr} = await sb.from('parts')
+      .update(partData)
+      .eq('id', existingPart.id);
+    partErr = updateErr;
+  } else {
+    // Insert new
+    const {error:insertErr} = await sb.from('parts')
+      .insert(partData);
+    partErr = insertErr;
+  }
+  if(partErr) return alert('Part upsert error: '+partErr.message);
+  
+  // 5. Upsert BOQ row – check if exists for this part
+  const boqData = {
     project_id: DB.projectId,
     revision_id: DB.revisionId || null,
     item_no: partNo,
@@ -292,34 +321,54 @@ async function uploadDrawingAndGenerate(){
     qty: qty,
     material: material,
     specification: overall || '',
-    materialType: 'Steel',
-    materialProfile: 'Plate',
-    blankSize: overall || '',
-    drawingNo: drawingNo,
+    material_type: 'Steel',
+    material_profile: 'Plate',
+    blank_size: overall || '',
+    drawing_no: drawingNo,
     weight: weight
   };
-  const {error:boqErr} = await sb.from('boq_items').insert(boqRow);
-  if(boqErr) return alert('BOQ error: '+boqErr.message);
   
-  // 6. Auto‑generate MPP operations (based on part type)
+  const {data:existingBoq} = await sb.from('boq_items')
+    .select('id')
+    .eq('project_id', DB.projectId)
+    .eq('item_no', partNo)
+    .maybeSingle();
+  
+  if(existingBoq){
+    const {error:updateBoqErr} = await sb.from('boq_items')
+      .update(boqData)
+      .eq('id', existingBoq.id);
+    if(updateBoqErr) console.warn('BOQ update error:', updateBoqErr);
+  } else {
+    const {error:insertBoqErr} = await sb.from('boq_items')
+      .insert(boqData);
+    if(insertBoqErr) console.warn('BOQ insert error:', insertBoqErr);
+  }
+  
+  // 6. Upsert MPP operations – we'll delete existing ops for this part and recreate
+  // (simpler than trying to diff)
+  const {error:deleteOpsErr} = await sb.from('mpp_operations')
+    .delete()
+    .eq('project_id', DB.projectId)
+    .eq('part_no', partNo);
+  if(deleteOpsErr) console.warn('Delete ops error:', deleteOpsErr);
+  
   const ops = generateMppOperations(partNo, partName, qty);
   for(const op of ops){
     op.project_id = DB.projectId;
     op.part_no = partNo;
     const {error:opErr} = await sb.from('mpp_operations').insert(op);
-    if(opErr) console.warn('MPP op error:', opErr);
+    if(opErr) console.warn('MPP op insert error:', opErr);
   }
   
   // 7. Refresh local DB
   await loadFilesForProject();
   await refreshLocalData();
   
-  $('uploadStatus').innerHTML = '✅ Drawing uploaded – Part, BOQ, and MPP generated successfully!';
-  alert('✅ Drawing uploaded!\nPart: '+partNo+'\nBOQ row created\nMPP operations created');
+  $('uploadStatus').innerHTML = '✅ Drawing uploaded – Part, BOQ, and MPP generated/updated successfully!';
+  alert('✅ Drawing uploaded!\nPart: '+partNo+'\nBOQ row updated/created\nMPP operations updated');
   
-  // Clear form
-  $('uploadPartNo').value = '';
-  $('uploadPartName').value = '';
+  // Clear form (except part no and name – keep them for convenience)
   $('uploadMaterial').value = '';
   $('uploadQty').value = '1';
   $('uploadWeight').value = '';
@@ -495,7 +544,7 @@ function drawingButton(p){
   return html;
 }
 
-// -------- Render Parts (with drawing thumbnails) --------
+// -------- Render Parts --------
 function renderParts(){
   const q=norm($('partQ')?.value||''), f=$('partF')?.value||'';
   let a=DB.parts.filter(p=>(!q||norm([p.part_no,p.description,p.material,p.specification].join(' ')).includes(q))&&(!f||(f==='yes'?p.match_score>=60:p.match_score<60)));
