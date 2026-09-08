@@ -2,8 +2,7 @@
 
 /**
  * Engineering Cost Estimator V6 – Complete Backend
- * Includes: calculation engine, Excel import/export, Supabase integration,
- * generic CRUD for all tables, workflow summary, procurement comparison, etc.
+ * Supports extended BOQ/MPP fields and file uploads for drawings.
  */
 
 const express = require('express');
@@ -218,12 +217,8 @@ function supabaseServer() {
 }
 function actor(req){ return clean(req.headers['x-user-id']) || null; }
 function tableFor(type){ const map={ revision:'revisions', boq:'boq_items', parts:'parts', mpp:'mpp_operations', materials:'materials', suppliers:'suppliers', quotes:'supplier_quotes', purchaseOrders:'purchase_orders', production:'production_orders', actualCosts:'actual_costs', files:'part_files', estimates:'estimates', audit:'audit_log' }; return map[type]||type; }
-
-// -------- Audit helper --------
 async function audit(req, sb, payload) {
-  try {
-    await sb.from('audit_log').insert({ ...payload, actor_id: actor(req), ip_address: req.ip });
-  } catch(e){ console.warn('audit:', e.message); }
+  try { await sb.from('audit_log').insert({ ...payload, actor_id: actor(req), ip_address: req.ip }); } catch(e){ console.warn('audit:', e.message); }
 }
 
 // ======================== API ROUTES ========================
@@ -330,7 +325,13 @@ function autoMap(headers) {
     spec: /spec|size|dimension|designation/i,
     process: /process|operation|manufact|mpp/i,
     weight: /weight|kg/i,
-    cost: /cost|price|unit.?cost/i
+    cost: /cost|price|unit.?cost/i,
+    // new fields
+    materialType: /material type|type/i,
+    materialProfile: /material profile|profile/i,
+    blankSize: /blank size|blank/i,
+    drawingNo: /drawing no|drawing number|dwg no/i,
+    operationTime: /operation time|op time/i
   };
   const out = {};
   for (const [k, re] of Object.entries(tests)) out[k] = headers.findIndex(h => re.test(clean(h)));
@@ -340,16 +341,25 @@ function normalizeRows(rows, mapping = {}) {
   if (!rows.length) return [];
   const headers = rows[0].map(clean);
   const m = { ...autoMap(headers), ...mapping };
-  return rows.slice(1).map((r, i) => ({
-    id: clean(r[m.part] ?? `P-${i + 1}`),
-    name: clean(r[m.name]),
-    qty: num(r[m.qty], 1),
-    material: clean(r[m.material]),
-    specification: clean(r[m.spec]),
-    process: clean(r[m.process]),
-    weightKg: num(r[m.weight]),
-    unitCost: num(r[m.cost])
-  })).filter(x => x.name || x.id || x.material);
+  return rows.slice(1).map((r, i) => {
+    const row = {
+      id: clean(r[m.part] ?? `P-${i + 1}`),
+      name: clean(r[m.name]),
+      qty: num(r[m.qty], 1),
+      material: clean(r[m.material]),
+      specification: clean(r[m.spec]),
+      process: clean(r[m.process]),
+      weightKg: num(r[m.weight]),
+      unitCost: num(r[m.cost]),
+      materialType: clean(r[m.materialType]),
+      materialProfile: clean(r[m.materialProfile]),
+      blankSize: clean(r[m.blankSize]),
+      drawingNo: clean(r[m.drawingNo]),
+      operationTime: num(r[m.operationTime])
+    };
+    // Also map 'operationTime' to cycle_min if needed (for MPP)
+    return row;
+  }).filter(x => x.name || x.id || x.material);
 }
 
 // --- Workflow summary ---
@@ -473,14 +483,16 @@ app.get('/api/project/:id', async(req,res)=>{
   }catch(e){ res.status(404).json({ok:false, error:e.message}); }
 });
 
-// Serve static files from the current directory (where server.js lives)
-app.use(express.static(__dirname));
-
-// Fallback: serve index.html for all other routes (including "/")
+// --- Serve frontend (Express 5 compatible) ---
+// Serve static files from the project root (where index.html lives)
+app.use(express.static(ROOT));
+// Catch-all – serve index.html for client-side routing
 app.get('/*splat', (req, res) => {
-  res.sendFile(path.join(__dirname, 'index.html'));
+  res.sendFile(path.join(ROOT, 'index.html'));
 });
+
 // --- Start server ---
+const PORT = process.env.PORT || 3000;
 app.listen(PORT, ()=>{
   console.log(`Engineering Cost Estimator V6 running on http://localhost:${PORT}`);
   console.log('Workflow: Project -> BOQ -> MPP -> Materials -> Procurement -> Production -> Actual Cost');
