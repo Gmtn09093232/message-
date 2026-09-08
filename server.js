@@ -474,7 +474,7 @@ app.get('/api/project/:id', async(req,res)=>{
 });
 
 // --- Serve frontend ---
-app.get('*', (req,res)=>res.sendFile(path.join(PUBLIC_DIR, 'index.html')));
+app.get('/*splat', (req,res)=>res.sendFile(path.join(PUBLIC_DIR, 'index.html')));
 
 // --- Start server ---
 app.listen(PORT, ()=>{
