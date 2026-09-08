@@ -7,7 +7,6 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <style>
-/* -------- same as before -------- */
 :root{--nav:#0b1d33;--nav2:#112a47;--blue:#1683f5;--blue2:#0d6efd;--bg:#f3f6fa;--card:#fff;--line:#e2e8f0;--muted:#667085;--good:#16a36a;--warn:#f59e0b;--bad:#ef4444;--purple:#7357e8;--shadow:0 3px 14px rgba(15,35,60,.07)}
 *{box-sizing:border-box}body{margin:0;background:var(--bg);font:14px Inter,Arial,sans-serif;color:#172033}
 header{height:64px;background:linear-gradient(90deg,#0b1d33,#12355a);color:#fff;padding:10px 24px 10px 24px;position:fixed;left:0;right:0;top:0;z-index:50;display:flex;align-items:center;gap:20px;box-shadow:0 2px 12px rgba(0,0,0,.15)}
@@ -202,21 +201,28 @@ async function selectProject(id){
   } catch(e){ alert(e.message); }
 }
 
-// -------- Refresh all data from Supabase --------
+// -------- Refresh all data from Supabase (FIXED: suppliers are global) --------
 async function refreshAllData(){
   if(!DB.projectId) return alert('Open a project first.');
   try {
+    // Tables with project_id
     const parts=await V6Brain.data('parts',DB.projectId); DB.parts=parts.data||[];
     const boq=await V6Brain.data('boq',DB.projectId); DB.boq=boq.data||[];
-    const suppliers=await V6Brain.data('suppliers',DB.projectId); DB.suppliers=suppliers.data||[];
     const ops=await V6Brain.data('mpp_operations',DB.projectId); DB.ops=ops.data||[];
     const files=await V6Brain.data('files',DB.projectId); DB.files=files.data||[];
+    
+    // Suppliers are global – no project_id filter
+    const suppliers=await V6Brain.data('suppliers'); DB.suppliers=suppliers.data||[];
+    
     renderParts(); renderBoq(); renderOps(); renderSuppliers(); renderFiles(); calc();
     $('uploadStatus').innerHTML='✅ Data refreshed from database.';
-  } catch(e){ alert('Refresh error: '+e.message); }
+  } catch(e){ 
+    console.error('Refresh error:', e);
+    alert('Refresh error: '+e.message); 
+  }
 }
 
-// -------- Drawing Upload – Auto‑generate BOQ & MPP (fixed) --------
+// -------- Drawing Upload – Auto‑generate BOQ & MPP --------
 async function uploadDrawingAndGenerate(){
   if(!sb) return alert('Connect Supabase first.');
   if(!DB.projectId) return alert('Please save or open a project first.');
@@ -279,7 +285,7 @@ async function uploadDrawingAndGenerate(){
   });
   if(insertFileErr) return alert('File record error: '+insertFileErr.message);
   
-  // 4. UPSERT PART – try with extended columns, fallback to basic if error
+  // 4. UPSERT PART
   const partDataBase = {
     project_id: DB.projectId,
     part_no: partNo,
@@ -295,14 +301,12 @@ async function uploadDrawingAndGenerate(){
     geometry: { type: inferDrawingType({description: partName, specification: overall}) }
   };
   
-  // Try extended version
   let partData = {...partDataBase, 
     material_type: 'Steel',
     material_profile: 'Plate',
     blank_size: overall || ''
   };
   
-  // Check existing part
   const {data:existingPart} = await sb.from('parts')
     .select('id')
     .eq('project_id', DB.projectId)
@@ -313,7 +317,6 @@ async function uploadDrawingAndGenerate(){
   if(existingPart){
     const {error:updateErr} = await sb.from('parts').update(partData).eq('id', existingPart.id);
     if(updateErr){
-      // If extended columns fail, retry with basic
       console.warn('Part update with extended columns failed, retrying basic:', updateErr);
       const {error:retryErr} = await sb.from('parts').update(partDataBase).eq('id', existingPart.id);
       partErr = retryErr;
@@ -328,7 +331,7 @@ async function uploadDrawingAndGenerate(){
   }
   if(partErr) return alert('Part upsert error: '+partErr.message);
   
-  // 5. Upsert BOQ row – same fallback
+  // 5. Upsert BOQ row
   const boqBase = {
     project_id: DB.projectId,
     revision_id: DB.revisionId || null,
@@ -370,7 +373,7 @@ async function uploadDrawingAndGenerate(){
   }
   if(boqErr) console.warn('BOQ upsert error (non‑fatal):', boqErr);
   
-  // 6. Regenerate MPP ops – delete old ones and insert new
+  // 6. Regenerate MPP ops
   const {error:deleteOpsErr} = await sb.from('mpp_operations')
     .delete()
     .eq('project_id', DB.projectId)
